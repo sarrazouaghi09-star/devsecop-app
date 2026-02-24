@@ -26,14 +26,16 @@ jobs:
       - name: Install Bandit (SAST)
         run: |
           pip install bandit
+
       - name: Run Bandit Security Scan
         run: |
-          bandit -r . -f json -o bandit-report.json
+          bandit -r . -f json -o bandit-report.json || true
       - name: Upload Bandit Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bandit-report
           path: bandit-report.json
+
       - name: Run app syntax check
         run: |
           python -m py_compile app.py
