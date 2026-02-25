@@ -55,3 +55,12 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t devsecop-app .
+      - name: Scan Docker image with trivy
+        users: aquasecurity/trivy-action@master
+        with:
+          image-ref: devsecops-app
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
