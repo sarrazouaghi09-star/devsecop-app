@@ -56,7 +56,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t devsecop-app .
+          docker build -t ghcr.io/${{ github.repository }}:latest .
       - name: Scan Docker image with trivy
         uses: aquasecurity/trivy-action@master
         with:
