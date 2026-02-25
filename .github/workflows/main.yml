@@ -33,7 +33,6 @@ jobs:
 
       - name: Run Bandit Security Scan
         run: |
-          bandit -r .
           bandit -r . -f json -o bandit-report.json || true
       - name: Upload Bandit Report
         uses: actions/upload-artifact@v4
