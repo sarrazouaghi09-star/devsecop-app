@@ -72,16 +72,11 @@ jobs:
         run: docker push ghcr.io/${{ github.repository }}:latest
   deploy:
     needs: docker-build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          script: |
-            docker pull ghcr.io/${{ github.repository }}:latest
-            docker stop devsecop-app || true
-            docker rm devsecop-app || true
-            docker run -d -p 5000:5000 --name devsecop-app ghcr.io/${{ github.repository }}:latest
+      - name: Deploy locally
+        run: |
+           docker pull ghcr.io/sarrazouaghi09-star/devsecop-app:latest
+           docker stop devsecop-app || true
+           docker rm devsecop-app || true
+           docker run -d -p 5000:5000 --name devsecop-app ghcr.io/sarrazouaghi09-star/devsecop-app:latest
