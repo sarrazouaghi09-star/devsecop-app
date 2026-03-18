@@ -55,7 +55,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
     - name: SonarQube Quality Gate
-      uses: SonarSource/sonarqube-quality-gate-action@v1
+      uses: SonarSource/sonarqube-quality-gate-action@v2
       timeoout-minutes: 5
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -67,7 +67,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Build Docker image
         run: |
           docker build -t ghcr.io/${{ github.repository }}:latest .
