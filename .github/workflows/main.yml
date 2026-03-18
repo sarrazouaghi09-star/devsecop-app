@@ -45,6 +45,20 @@ jobs:
       - name: Run app syntax check
         run: |
           python -m py_compile app.py
+     - name: SonarQube Scan
+       uses: SonarSource/sonarqube-scan-action@v2
+       with:
+        args: >
+          -Dsonar.projectKey=devsecop-app
+          -Dsonar.sources=.
+       env:
+        SONAR_TOKEN: ${{ secrets.SONAR_token }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    - name: SonarQube Quality Gate
+      uses: SonarSource/sonarqube-quality-gate-action@v1
+      timeoout-minutes: 5
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   docker-build:
     runs-on: ubuntu-latest
