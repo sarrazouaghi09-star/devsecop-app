@@ -48,17 +48,22 @@ jobs:
       - name: Run app syntax check
         run: |
           python -m py_compile app.py
+      - name: Install Sonar Scanner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-5.0.1.3006-linux.zip
+          unzip sonar-scanner-cli-*.zip
+          echo "$(pwd)/sonar-scanner-*/bin" >> $GITHUB_PATH
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v2
-        with:
-          args: >
-            -Dsonar.projectKey=devsecop-app
-            -Dsonar.projectName=devsecop-app
-            -Dsonar.sources=.
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: http://sonarqube:9000
+      - name: Run Sonar Scanner
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=devsecop-app \
+            -Dsonar.projectName=devsecop-app \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=http://localhost:9000 \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
   docker-build:
     runs-on: ubuntu-latest
