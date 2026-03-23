@@ -104,3 +104,8 @@ jobs:
         uses: zaproxy/action-baseline@v0.10.0
         with:
           target: 'http://192.168.1.171:5000'
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: report_html.html
