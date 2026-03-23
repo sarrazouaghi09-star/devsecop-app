@@ -95,3 +95,12 @@ jobs:
            docker stop devsecop-app || true
            docker rm devsecop-app || true
            docker run -d -p 5000:5000 --name devsecop-app ghcr.io/sarrazouaghi09-star/devsecop-app:latest
+  zap-scan:
+    runs-on: ubuntu-latest
+    needs: deploy
+    
+    steps:
+      - name: OWASP ZAP Scan
+        uses: zaproxy/action-baseline÷@v0.10.0
+        with:
+          target: 'http://192.168.1.171:5000'
