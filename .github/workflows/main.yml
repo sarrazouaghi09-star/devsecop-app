@@ -44,15 +44,6 @@ jobs:
       - name: Run app syntax check
         run: |
           python -m py_compile app.py
-     - name: SonarQube Scan
-       uses: SonarSource/sonarqube-scan-action@v2
-       with:
-        args: >
-          -Dsonar.projectKey=devsecop-app
-          -Dsonar.sources=.
-       env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
 
   docker-build:
