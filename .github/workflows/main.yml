@@ -49,6 +49,9 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v2
         with:
           args: >
+            -Dsonar.projectKey=devsecop-app
+            -Dsonar.projectName=devsecop-app
+            -Dsonar.sources=.
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
         env:
