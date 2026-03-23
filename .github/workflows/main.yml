@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 jobs:
-    build-test:
+  build-test:
     runs-on: ubuntu-latest
 
     steps:
