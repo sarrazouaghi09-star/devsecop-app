@@ -48,6 +48,12 @@ jobs:
       - name: Run app syntax check
         run: |
           python -m py_compile app.py
+      - name: wait  for SonarQube
+        run: |
+          for i in {1.20}; do
+            curl -s http://localhost:9000 && break
+            sleep 5
+          done
       - name: Install Sonar Scanner
         run: |
           sudo apt-get update
