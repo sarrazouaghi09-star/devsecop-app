@@ -56,11 +56,9 @@ jobs:
             -Dsonar.projectKey=devsecop-app
             -Dsonar.projectName=devsecop-app
             -Dsonar.sources=.
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: http://localhost:9000
 
   docker-build:
     runs-on: ubuntu-latest
