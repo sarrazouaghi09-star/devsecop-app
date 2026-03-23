@@ -64,7 +64,7 @@ jobs:
             -Dsonar.sources=.
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: http://127.0.0.1:9000
+          SONAR_HOST_URL: http://host.docker.internal:9000
 
   docker-build:
     runs-on: ubuntu-latest
