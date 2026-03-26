@@ -54,23 +54,11 @@ jobs:
             curl -s http://localhost:9000 && break
             sleep 5
           done
-      - name: Install Sonar Scanner
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip curl
-          curl -L -o sonar-scanner.zip \
-          https://github.com/SonarSource/sonar-scanner-cli/releaseses/download/5.0.1.3006/sonar-scanner-cli-5.0.1.3006-linux.zip
-          unzip sonar-scanner.zip
-          echo "$(pwd)/sonar-scanner-*/bin" >> $GITHUB_PATH
-
-      - name: Run Sonar Scanner
-        run: |
-          sonar-scanner \
-            -Dsonar.projectKey=devsecop-app \
-            -Dsonar.projectName=devsecop-app \
-            -Dsonar.sources=. \
-            -Dsonar.host.url=http://localhost:9000 \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
   docker-build:
     runs-on: ubuntu-latest
