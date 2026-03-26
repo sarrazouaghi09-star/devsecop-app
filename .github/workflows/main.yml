@@ -55,8 +55,8 @@ jobs:
             -Dsonar.organization=sarrazouaghi09-star
             -Dsonar.projectKey=sarrazouaghi09-star_devsecop-app
             -Dsonar.sources=.
-          env:
-            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   docker-build:
     runs-on: ubuntu-latest
