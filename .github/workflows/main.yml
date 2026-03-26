@@ -55,6 +55,9 @@ jobs:
             -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECTKEY }}
             -Dsonar.sources=.
+            -Dsonar.exclusions=venv/**,__pycache__/**
+            -Dsonar.c.file.suffixes=-
+            -Dsonar.objc.file.suffixes=-
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
