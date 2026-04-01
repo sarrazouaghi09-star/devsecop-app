@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+
+{% block header_title %}Upload Documents{% endblock %}
+
+{% block content %}
+
+<style>
+.upload-shell{
+max-width:1280px;
+margin:0 auto;
+padding:40px 24px 24px;
+}
+
+.upload-topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:20px;
+padding:22px 24px;
+background:#fff;
+border:1px solid rgba(216,224,235,0.85);
+border-radius:22px;
+box-shadow:0 14px 34px rgba(15, 23, 42, 0.05);
+flex-wrap:wrap;
+margin-bottom:24px;
+}
+
+.upload-kicker{
+font-size:0.82rem;
+color:#6b7280;
+margin-bottom:6px;
+letter-spacing:0.14em;
+text-transform:uppercase;
+}
+
+.upload-topbar h1{
+margin:0;
+font-size:2rem;
+line-height:1.1;
+font-weight:700;
+color:#1f2937;
+}
+
+.upload-topbar p{
+margin:10px 0 0;
+color:#6b7280;
+max-width:720px;
+}
+
+.upload-chip{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 14px;
+background:linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+border:1px solid rgba(216,224,235,0.9);
+border-radius:20px;
+min-width:220px;
+}
+
+.upload-chip-icon{
+width:42px;
+height:42px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#1f1f1f;
+color:#fff;
+font-size:1rem;
+}
+
+.upload-chip small{
+display:block;
+color:#6b7280;
+text-transform:uppercase;
+letter-spacing:0.08em;
+font-size:0.72rem;
+}
+
+.upload-panel{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15, 23, 42, 0.06);
+overflow:hidden;
+}
+
+.upload-panel-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 18px;
+border-bottom:1px solid rgba(216,224,235,0.55);
+}
+
+.upload-panel-header h2{
+margin:0;
+font-size:1.2rem;
+font-weight:700;
+color:#1f2937;
+}
+
+.upload-panel-header p{
+margin:8px 0 0;
+color:#6b7280;
+}
+
+.upload-badge{
+padding:8px 12px;
+border-radius:999px;
+background:#f7f8fb;
+color:#6b7280;
+font-size:0.82rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.upload-panel-body{
+padding:24px;
+}
+
+.doc-grid{
+display:grid;
+grid-template-columns:repeat(2, minmax(0, 1fr));
+gap:20px;
+}
+
+.doc-box{
+border:2px dashed #d1d5db;
+border-radius:24px;
+padding:34px 24px;
+cursor:pointer;
+transition:0.25s ease;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+text-align:center;
+background:#fbfcfe;
+min-height:240px;
+}
+
+.doc-box:hover{
+border-color:#d90429;
+background:#fff7f8;
+transform:translateY(-3px);
+}
+
+.doc-box h5{
+margin:16px 0 8px;
+font-weight:700;
+color:#111827;
+}
+
+.doc-box p{
+margin:0;
+color:#6b7280;
+}
+
+.upload-preview{
+margin-top:24px;
+display:flex;
+justify-content:center;
+}
+
+.upload-preview img{
+max-width:320px;
+display:none;
+border-radius:18px;
+border:1px solid rgba(216,224,235,0.8);
+box-shadow:0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.upload-action{
+display:flex;
+justify-content:center;
+margin-top:24px;
+}
+
+.upload-btn{
+border-radius:16px;
+padding:12px 18px;
+font-weight:700;
+}
+
+body.dark-mode .upload-topbar,
+body.dark-mode .upload-panel{
+background:#1f2937;
+border-color:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .upload-topbar h1,
+body.dark-mode .upload-panel-header h2,
+body.dark-mode .doc-box h5{
+color:#e5e7eb;
+}
+
+.doc-box.selected {
+border: 2px solid #28a745;
+box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+}
+
+.warning-message {
+color: #dc3545;
+font-weight: bold;
+text-align: center;
+margin-bottom: 16px;
+}
+
+body.dark-mode .upload-kicker,
+body.dark-mode .upload-topbar p,
+body.dark-mode .upload-chip small,
+body.dark-mode .upload-panel-header p,
+body.dark-mode .upload-badge,
+body.dark-mode .doc-box p{
+color:#cbd5e1;
+}
+
+body.dark-mode .upload-chip,
+body.dark-mode .upload-badge,
+body.dark-mode .doc-box{
+background:#000;
+border-color:#1f2937;
+}
+
+body.dark-mode .upload-chip-icon{
+background:#000;
+}
+
+body.dark-mode .doc-box:hover{
+background:#1f2937;
+border-color:#d90429;
+}
+
+body.dark-mode .upload-preview img{
+border-color:#1f2937;
+}
+
+body.dark-mode .upload-panel-header{
+border-color:#1f2937;
+}
+
+@media (max-width: 768px){
+.upload-shell{
+padding:30px 18px 18px;
+}
+
+.upload-topbar{
+padding:20px 18px;
+}
+
+.upload-panel-header,
+.upload-panel-body{
+padding-left:18px;
+padding-right:18px;
+}
+
+.upload-chip{
+width:100%;
+}
+
+.doc-grid{
+grid-template-columns:1fr;
+}
+}
+</style>
+
+<div class="upload-shell">
+<div class="upload-topbar">
+<div style="min-width:0; flex:1 1 320px;">
+<div class="upload-kicker">Support / <strong style="color:#d90429;">Upload Documents</strong></div>
+<h1>Upload Documents</h1>
+<p>Attach passenger identity documents and review a quick preview before sending them to the system.</p>
+</div>
+
+<div class="upload-chip">
+<div>
+<strong>2 required documents</strong>
+<small>Passport and CIN</small>
+</div>
+<div class="upload-chip-icon">
+<i class="fa-solid fa-file-arrow-up"></i>
+</div>
+</div>
+</div>
+
+<section class="upload-panel">
+<div class="upload-panel-header">
+<div>
+<h2>Passenger Document Upload</h2>
+<p>Select the required identity files and preview the chosen document before uploading.</p>
+</div>
+<div class="upload-badge">Secure upload</div>
+</div>
+
+<div class="upload-panel-body">
+{% if request.args.get('uploaded') %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <strong>Success!</strong> Files uploaded successfully.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+{% if request.args.get('error') == 'passport' %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <strong>Warning!</strong> Please select a passport file to upload.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+{% if request.args.get('error') == 'cin' %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <strong>Warning!</strong> Please select a CIN file to upload.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+<div id="file-warning" class="warning-message" style="display: none;">
+Please select both passport and CIN files before uploading.
+</div>
+<form method="POST" enctype="multipart/form-data">
+<div class="doc-grid">
+<label class="doc-box">
+<i class="fa fa-passport fa-3x text-danger"></i>
+<h5>Passport</h5>
+<p>Upload passenger passport</p>
+<input type="file"
+name="passport"
+accept=".jpg,.jpeg,.png,.pdf"
+style="display:none"
+onchange="handleFileSelect(event)">
+</label>
+
+<label class="doc-box">
+<i class="fa fa-id-card fa-3x text-primary"></i>
+<h5>National ID (CIN)</h5>
+<p>Upload passenger ID card</p>
+<input type="file"
+name="cin"
+accept=".jpg,.jpeg,.png,.pdf"
+style="display:none"
+onchange="handleFileSelect(event)">
+</label>
+</div>
+
+<div class="upload-preview">
+<img id="preview" alt="Selected file preview">
+</div>
+
+<div class="upload-action">
+<button class="btn btn-danger upload-btn" type="submit">
+<i class="fa fa-upload"></i>
+Upload Documents
+</button>
+</div>
+</form>
+</div>
+</section>
+</div>
+
+<script>
+
+function handleFileSelect(event){
+
+let file = event.target.files[0]
+let label = event.target.parentElement
+
+if(file){
+label.classList.add('selected')
+} else {
+label.classList.remove('selected')
+}
+
+checkFiles()
+
+if(!file) return
+
+let reader = new FileReader()
+
+reader.onload = function(e){
+
+let img = document.getElementById("preview")
+
+img.src = e.target.result
+img.style.display = "block"
+
+}
+
+reader.readAsDataURL(file)
+
+}
+
+function checkFiles(){
+let passport = document.querySelector('input[name="passport"]').files[0]
+let cin = document.querySelector('input[name="cin"]').files[0]
+let warning = document.getElementById('file-warning')
+
+if(!passport && !cin){
+warning.style.display = 'block'
+} else {
+warning.style.display = 'none'
+}
+}
+
+// Check on load
+document.addEventListener('DOMContentLoaded', checkFiles)
+
+</script>
+
+{% endblock %}

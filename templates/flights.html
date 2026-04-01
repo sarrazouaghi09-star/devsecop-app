@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Flight Management</title>
+
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+
+:root{
+--bg:#f4f6f9;
+--panel:#ffffff;
+--line:#d8e0eb;
+--text:#1f2937;
+--muted:#6b7280;
+--accent:#d90429;
+--shadow:0 24px 60px rgba(15, 23, 42, 0.08);
+}
+
+body{
+margin:0;
+background:var(--bg);
+font-family:Arial, Helvetica, sans-serif;
+color:var(--text);
+}
+
+body.dark-mode{
+background:#000;
+color:#e5e7eb;
+}
+
+.logo{
+height:45px;
+}
+
+.page-wrap{
+width:100%;
+max-width:1280px;
+margin:0 auto;
+}
+
+.page-header{
+background:#fff;
+box-shadow:0 2px 10px rgba(0,0,0,0.08);
+margin-bottom:24px;
+border-bottom:1px solid rgba(216,224,235,0.85);
+}
+
+.page-header .container{
+display:flex;
+align-items:center;
+gap:18px;
+padding:14px 24px;
+}
+
+.header-nav-link{
+color:var(--text);
+text-decoration:none;
+padding:8px 0;
+}
+
+.header-nav-link.active{
+font-weight:700;
+position:relative;
+}
+
+.header-nav-link.active::after{
+content:"";
+position:absolute;
+left:0;
+right:0;
+bottom:-14px;
+height:3px;
+border-radius:999px;
+background:var(--accent);
+}
+
+.main{
+padding:0 24px 32px;
+}
+
+.topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:20px;
+padding:22px 24px;
+background:#fff;
+border:1px solid rgba(216,224,235,0.85);
+border-radius:22px;
+box-shadow:0 14px 34px rgba(15, 23, 42, 0.05);
+flex-wrap:wrap;
+margin-bottom:24px;
+}
+
+.page-kicker{
+font-size:0.82rem;
+color:var(--muted);
+margin-bottom:6px;
+letter-spacing:0.14em;
+text-transform:uppercase;
+}
+
+.topbar h1{
+margin:0;
+font-size:2rem;
+line-height:1.1;
+font-weight:700;
+}
+
+.topbar p{
+margin:10px 0 0;
+color:var(--muted);
+max-width:680px;
+}
+
+.section-title{
+font-weight:700;
+letter-spacing:-0.01em;
+}
+
+.topbar-tools{
+display:flex;
+align-items:center;
+gap:14px;
+flex-wrap:wrap;
+justify-content:flex-end;
+margin-left:auto;
+}
+
+.admin-chip{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 14px;
+background:linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+border:1px solid rgba(216,224,235,0.9);
+border-radius:20px;
+min-width:220px;
+}
+
+.admin-chip-icon{
+width:42px;
+height:42px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#1f1f1f;
+color:#fff;
+font-size:1rem;
+}
+
+.admin-chip small{
+display:block;
+color:var(--muted);
+text-transform:uppercase;
+letter-spacing:0.08em;
+font-size:0.72rem;
+}
+
+.card{
+border-radius:22px;
+border:1px solid rgba(216,224,235,0.8);
+box-shadow:0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.panel{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15, 23, 42, 0.06);
+overflow:hidden;
+}
+
+.panel-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 18px;
+border-bottom:1px solid rgba(216,224,235,0.55);
+}
+
+.panel-header h2{
+margin:0;
+font-size:1.2rem;
+font-weight:700;
+}
+
+.panel-header p{
+margin:8px 0 0;
+color:var(--muted);
+}
+
+.panel-badge{
+padding:8px 12px;
+border-radius:999px;
+background:#f7f8fb;
+color:var(--muted);
+font-size:0.82rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.panel-body{
+padding:24px;
+}
+
+.footer{
+margin-top:80px;
+background:#1f1f1f;
+color:white;
+padding:25px;
+text-align:center;
+}
+
+.header-profile{
+margin-left:auto;
+display:flex;
+align-items:center;
+gap:12px;
+}
+
+.active-page-link{
+position:relative;
+display:inline-flex;
+align-items:center;
+padding-bottom:12px !important;
+}
+
+.active-page-link::after{
+content:"";
+position:absolute;
+left:0;
+right:0;
+bottom:0;
+height:3px;
+border-radius:999px;
+background:#c1121f;
+}
+
+.header-avatar{
+width:44px;
+height:44px;
+border-radius:50%;
+object-fit:cover;
+border:2px solid #dee2e6;
+}
+
+.header-fallback{
+width:44px;
+height:44px;
+border-radius:50%;
+background:#dc3545;
+color:white;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:700;
+}
+
+.profile-access-link{
+text-decoration:none;
+color:inherit;
+display:flex;
+align-items:center;
+}
+
+.profile-access-link:hover{
+opacity:0.9;
+}
+
+.header-menu{
+position:relative;
+margin:0;
+}
+
+.header-menu summary{
+list-style:none;
+}
+
+.header-menu summary::-webkit-details-marker{
+display:none;
+}
+
+.header-menu-trigger{
+width:38px;
+height:38px;
+border:none;
+border-radius:50%;
+background:#f3f4f6;
+color:#374151;
+display:flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+}
+
+.header-menu-panel{
+position:absolute;
+top:46px;
+right:0;
+min-width:160px;
+background:white;
+border:1px solid #e5e7eb;
+border-radius:12px;
+box-shadow:0 12px 30px rgba(15,23,42,0.14);
+padding:8px;
+display:flex;
+flex-direction:column;
+gap:6px;
+z-index:1000;
+}
+
+.header-menu-item{
+width:100%;
+border:none;
+background:transparent;
+color:#1f2937;
+padding:10px 12px;
+border-radius:8px;
+display:flex;
+align-items:center;
+gap:10px;
+text-decoration:none;
+text-align:left;
+}
+
+.header-menu-item:hover{
+background:#f3f4f6;
+}
+
+.logout-link{
+color:#dc2626;
+}
+
+.flight-actions{
+display:flex;
+align-items:center;
+gap:6px;
+flex-wrap:nowrap;
+}
+
+.status-form{
+display:flex;
+align-items:center;
+gap:6px;
+flex-wrap:nowrap;
+padding:4px;
+background:#f8fafc;
+border:1px solid rgba(216,224,235,0.88);
+border-radius:16px;
+}
+
+.status-form select{
+min-width:102px;
+border-radius:12px;
+border-color:transparent;
+padding:6px 10px;
+font-size:0.82rem;
+background:#fff;
+font-weight:600;
+}
+
+.form-control,
+select.form-control{
+border-radius:16px;
+border:1px solid rgba(216,224,235,0.9);
+padding:12px 14px;
+box-shadow:none;
+}
+
+.form-control:focus,
+select.form-control:focus{
+border-color:#f29aaa;
+box-shadow:0 0 0 4px rgba(217,4,41,0.08);
+}
+
+.table-wrap{
+overflow-x:auto;
+max-width:100%;
+max-height:560px;
+overflow-y:auto;
+}
+
+.data-table{
+width:100%;
+border-collapse:collapse;
+min-width:900px;
+}
+
+.data-table th,
+.data-table td{
+padding:11px 14px;
+text-align:left;
+border-bottom:1px solid rgba(216,224,235,0.8);
+vertical-align:middle;
+}
+
+.data-table th{
+font-size:0.82rem;
+text-transform:uppercase;
+letter-spacing:0.08em;
+color:var(--muted);
+background:#fafbfc;
+}
+
+.data-table tbody tr{
+transition:background 0.2s ease;
+}
+
+.data-table tbody tr:hover{
+background:#fafbfd;
+}
+
+.data-table tr:last-child td{
+border-bottom:none;
+}
+
+.status-tag{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:6px 10px;
+border-radius:999px;
+font-size:0.76rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.status-tag.on-time{ background:#dcfce7; color:#15803d; }
+.status-tag.boarding{ background:#dbeafe; color:#1d4ed8; }
+.status-tag.delayed{ background:#fef3c7; color:#d97706; }
+.status-tag.cancelled{ background:#fee2e2; color:#dc2626; }
+
+.action-btn{
+border-radius:12px;
+padding:6px 10px;
+font-weight:600;
+font-size:0.8rem;
+line-height:1.1;
+}
+
+.status-save-btn{
+background:#1f2937;
+border-color:#1f2937;
+color:#fff;
+min-width:72px;
+}
+
+.status-save-btn:hover{
+background:#111827;
+border-color:#111827;
+color:#fff;
+}
+
+.back-link{
+margin-top:20px;
+border-radius:16px;
+padding:10px 16px;
+}
+
+body.dark-mode .navbar,
+body.dark-mode .card,
+body.dark-mode .footer{
+background:#1f2937 !important;
+color:#e5e7eb !important;
+}
+
+body.dark-mode .page-header,
+body.dark-mode .topbar,
+body.dark-mode .panel{
+background:#1f2937;
+border-color:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .header-nav-link,
+body.dark-mode .page-kicker,
+body.dark-mode .topbar p,
+body.dark-mode .admin-chip small{
+color:#cbd5e1 !important;
+}
+
+body.dark-mode .admin-chip{
+background:#000;
+border-color:#1f2937;
+}
+
+body.dark-mode .admin-chip-icon{
+background:#000;
+}
+
+body.dark-mode .panel-header{
+border-color:#1f2937;
+}
+
+body.dark-mode .panel-badge,
+body.dark-mode .data-table th,
+body.dark-mode .data-table tbody tr:hover{
+background:#000;
+color:#cbd5e1;
+}
+
+body.dark-mode .status-form{
+background:#1f2937;
+border-color:#1f2937;
+}
+
+body.dark-mode .status-form select{
+background:#000;
+color:#e5e7eb;
+border-color:transparent;
+}
+
+body.dark-mode .data-table td,
+body.dark-mode .data-table th{
+border-color:#1f2937;
+}
+
+body.dark-mode .table{
+color:#e5e7eb;
+}
+
+body.dark-mode .form-control,
+body.dark-mode select{
+background:#e5e7eb;
+color:#111827;
+border-color:#9ca3af;
+}
+
+body.dark-mode .form-control::placeholder{
+color:#9ca3af;
+opacity:1;
+}
+
+body.dark-mode .header-menu-trigger{
+background:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .header-menu-panel{
+background:#1f2937;
+border-color:#000;
+}
+
+body.dark-mode .header-menu-item{
+color:#e5e7eb;
+}
+
+body.dark-mode .header-menu-item:hover{
+background:#000;
+}
+
+@media (max-width: 768px){
+.main{
+padding:0 18px 24px;
+}
+
+.page-header .container{
+padding:14px 18px;
+flex-wrap:wrap;
+}
+
+.topbar{
+padding:20px 18px;
+}
+
+.topbar-tools{
+width:100%;
+justify-content:flex-start;
+margin-left:0;
+}
+
+.admin-chip{
+width:100%;
+}
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- HEADER -->
+
+<nav class="page-header">
+
+<div class="container page-wrap">
+
+<a href="/dashboard">
+<img src="/static/tunisair.png" style="height:45px">
+</a>
+
+<a href="/dashboard" class="header-nav-link">Dashboard</a>
+<a class="header-nav-link active">Flight Management</a>
+
+{% if admin_profile %}
+<div class="header-profile">
+<a href="/edit-profile" class="profile-access-link">
+<div class="text-end">
+<div class="fw-semibold">{{ admin_profile[0] }}</div>
+<div class="text-muted small text-uppercase">{{ admin_profile[1] }}</div>
+</div>
+</a>
+
+{% if admin_profile[2] %}
+<a href="/edit-profile" class="profile-access-link">
+<img src="/static/uploads/users/{{ admin_profile[2] }}" alt="Admin profile" class="header-avatar">
+</a>
+{% else %}
+<a href="/edit-profile" class="profile-access-link">
+<div class="header-fallback">A</div>
+</a>
+{% endif %}
+
+<details class="header-menu">
+<summary class="header-menu-trigger">
+<i class="fa-solid fa-ellipsis-vertical"></i>
+</summary>
+<div class="header-menu-panel">
+<button type="button" class="header-menu-item darkModeToggle">
+<i class="fa-solid fa-moon"></i>
+Dark Mode
+</button>
+<a href="/logout" class="header-menu-item logout-link">
+<i class="fa-solid fa-right-from-bracket"></i>
+Log Off
+</a>
+</div>
+</details>
+</div>
+{% endif %}
+
+</div>
+
+</nav>
+
+<!-- PAGE CONTENT -->
+
+<main class="main">
+<div class="page-wrap">
+
+<div class="topbar">
+<div style="min-width:0; flex:1 1 320px;">
+<div class="page-kicker">Flights / <strong style="color:#d90429;">Flight Management</strong></div>
+<h1>Flight Management</h1>
+<p>Control flight creation, gate allocation, schedule timing, and live status changes from one operations view.</p>
+</div>
+
+<div class="topbar-tools">
+<div class="admin-chip">
+<div>
+<strong>{{ flights|length }} scheduled flights</strong>
+<small>Live operations registry</small>
+</div>
+<div class="admin-chip-icon">
+<i class="fa-solid fa-plane-departure"></i>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ADD FLIGHT -->
+
+<section class="panel mb-4">
+<div class="panel-header">
+<div>
+<h2>Add Flight</h2>
+<p>Create a new scheduled flight with route, gate, and departure timing.</p>
+</div>
+<div class="panel-badge">New entry</div>
+</div>
+
+<div class="panel-body">
+{% if request.args.get("error") == "flight_exists" %}
+<div class="alert alert-danger" role="alert">
+The flight number already exists.
+</div>
+{% endif %}
+
+<form method="POST" action="/add-flight">
+
+<div class="row">
+
+<div class="col-md-3 mb-3">
+
+<input class="form-control"
+name="flight"
+placeholder="Flight Number"
+required>
+
+</div>
+
+<div class="col-md-3 mb-3">
+
+<select class="form-control" name="departure">
+
+<option>Tunis</option>
+<option>Paris</option>
+<option>Rome</option>
+<option>Dubai</option>
+<option>Frankfurt</option>
+<option>Madrid</option>
+
+</select>
+
+</div>
+
+<div class="col-md-3 mb-3">
+
+<select class="form-control" name="destination">
+
+<option>Paris</option>
+<option>Rome</option>
+<option>Dubai</option>
+<option>Frankfurt</option>
+<option>Madrid</option>
+<option>Tunis</option>
+
+</select>
+
+</div>
+
+<div class="col-md-3 mb-3">
+
+<select class="form-control" name="gate">
+
+<option>A1</option>
+<option>A2</option>
+<option>A3</option>
+<option>A4</option>
+<option>B1</option>
+<option>B2</option>
+<option>C1</option>
+
+</select>
+
+</div>
+
+<div class="col-md-3 mb-3">
+
+<input type="datetime-local"
+class="form-control"
+name="time"
+required>
+
+</div>
+
+<div class="col-md-3 mb-3">
+
+<button class="btn btn-danger w-100">
+<i class="fa fa-plus"></i> Add Flight
+</button>
+
+</div>
+
+</div>
+
+</form>
+
+</div>
+</section>
+
+<!-- FLIGHTS TABLE -->
+
+<section class="panel">
+<div class="panel-header">
+<div>
+<h2>Upcoming Flights</h2>
+<p>Monitor all scheduled flights and update operational status directly from the table.</p>
+</div>
+<div class="panel-badge">{{ flights|length }} monitored</div>
+</div>
+
+<div class="panel-body" style="padding-top:12px;">
+<div class="table-wrap">
+<table class="data-table">
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+<th>Flight</th>
+<th>Departure</th>
+<th>Destination</th>
+<th>Gate</th>
+<th>Time</th>
+<th>Status</th>
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for f in flights %}
+
+<tr>
+
+<td>{{f[0]}}</td>
+<td>{{f[1]}}</td>
+<td>{{f[2]}}</td>
+<td>{{f[3]}}</td>
+<td>{{f[4]}}</td>
+<td>{{f[5]}}</td>
+
+<td>
+<span class="status-tag {% if f[6] == 'On Time' %}on-time{% elif f[6] == 'Boarding' %}boarding{% elif f[6] == 'Delayed' %}delayed{% else %}cancelled{% endif %}">{{f[6]}}</span>
+
+</td>
+
+<td>
+
+<div class="flight-actions">
+<form method="POST" action="/update-flight-status/{{f[0]}}" class="status-form">
+<input type="hidden" name="next" value="/flights">
+<select name="status" class="form-control form-control-sm">
+<option value="On Time" {% if f[6] == "On Time" %}selected{% endif %}>On Time</option>
+<option value="Boarding" {% if f[6] == "Boarding" %}selected{% endif %}>Boarding</option>
+<option value="Delayed" {% if f[6] == "Delayed" %}selected{% endif %}>Delayed</option>
+<option value="Cancelled" {% if f[6] == "Cancelled" %}selected{% endif %}>Cancelled</option>
+</select>
+<button class="btn btn-sm action-btn status-save-btn" type="submit">
+<i class="fa-solid fa-pen"></i> Save
+</button>
+</form>
+
+<a href="/delete-flight/{{f[0]}}"
+class="btn btn-danger btn-sm action-btn">
+
+<i class="fa fa-trash"></i>
+
+</a>
+</div>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+</div>
+</div>
+
+</section>
+
+<a href="/dashboard" class="btn btn-secondary back-link">
+Back to Dashboard
+</a>
+
+</div>
+</main>
+
+<!-- FOOTER -->
+
+<div class="footer">
+
+<p>Airline Operations System</p>
+
+<p>Contact: operations@tunisair.com</p>
+
+<p>© 2026 Tunisair Operations Platform</p>
+
+</div>
+
+</body>
+
+<script>
+const savedTheme = localStorage.getItem("theme")
+if(savedTheme === "dark"){
+document.body.classList.add("dark-mode")
+}
+
+document.querySelectorAll(".darkModeToggle").forEach(button => {
+button.addEventListener("click", () => {
+document.body.classList.toggle("dark-mode")
+localStorage.setItem("theme", document.body.classList.contains("dark-mode") ? "dark" : "light")
+})
+})
+</script>
+
+</html>

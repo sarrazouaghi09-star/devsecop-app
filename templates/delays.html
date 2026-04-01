@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block header_title %}Delay Management{% endblock %}
+
+{% block content %}
+
+<style>
+.delays-shell{
+max-width:1280px;
+margin:0 auto;
+padding:40px 24px 24px;
+}
+
+.delays-topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:20px;
+padding:22px 24px;
+background:#fff;
+border:1px solid rgba(216,224,235,0.85);
+border-radius:22px;
+box-shadow:0 14px 34px rgba(15, 23, 42, 0.05);
+flex-wrap:wrap;
+margin-bottom:24px;
+}
+
+.delays-kicker{
+font-size:0.82rem;
+color:#6b7280;
+margin-bottom:6px;
+letter-spacing:0.14em;
+text-transform:uppercase;
+}
+
+.delays-topbar h1{
+margin:0;
+font-size:2rem;
+line-height:1.1;
+font-weight:700;
+color:#1f2937;
+}
+
+.delays-topbar p{
+margin:10px 0 0;
+color:#6b7280;
+max-width:720px;
+}
+
+.delays-chip{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 14px;
+background:linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+border:1px solid rgba(216,224,235,0.9);
+border-radius:20px;
+min-width:220px;
+}
+
+.delays-chip-icon{
+width:42px;
+height:42px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#1f1f1f;
+color:#fff;
+font-size:1rem;
+}
+
+.delays-chip small{
+display:block;
+color:#6b7280;
+text-transform:uppercase;
+letter-spacing:0.08em;
+font-size:0.72rem;
+}
+
+.delays-panel{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15, 23, 42, 0.06);
+overflow:hidden;
+}
+
+.delays-panel-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 18px;
+border-bottom:1px solid rgba(216,224,235,0.55);
+}
+
+.delays-panel-header h2{
+margin:0;
+font-size:1.2rem;
+font-weight:700;
+color:#1f2937;
+}
+
+.delays-panel-header p{
+margin:8px 0 0;
+color:#6b7280;
+}
+
+.delays-badge{
+padding:8px 12px;
+border-radius:999px;
+background:#f7f8fb;
+color:#6b7280;
+font-size:0.82rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.delays-panel-body{
+padding:12px 24px 24px;
+}
+
+.delays-table-wrap{
+overflow-x:auto;
+max-width:100%;
+}
+
+.delays-table{
+width:100%;
+border-collapse:collapse;
+min-width:980px;
+}
+
+.delays-table th,
+.delays-table td{
+padding:12px 14px;
+text-align:left;
+border-bottom:1px solid rgba(216,224,235,0.8);
+vertical-align:middle;
+}
+
+.delays-table th{
+font-size:0.82rem;
+text-transform:uppercase;
+letter-spacing:0.08em;
+color:#6b7280;
+background:#fafbfc;
+}
+
+.delays-table tbody tr{
+transition:background 0.2s ease;
+}
+
+.delays-table tbody tr:hover{
+background:#fafbfd;
+}
+
+.delays-table tr:last-child td{
+border-bottom:none;
+}
+
+.flight-code{
+font-weight:700;
+color:#111827;
+}
+
+.gate-pill,
+.delay-pill,
+.status-pill{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:6px 10px;
+border-radius:999px;
+font-size:0.78rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.gate-pill{
+background:#eef2f7;
+color:#475569;
+}
+
+.delay-pill{
+background:#fef3c7;
+color:#d97706;
+}
+
+.status-pill{
+background:#fee2e2;
+color:#dc2626;
+}
+
+.zero-delay{
+color:#6b7280;
+font-weight:600;
+}
+
+.delay-update-form{
+display:flex;
+align-items:center;
+gap:6px;
+flex-wrap:nowrap;
+padding:4px;
+background:#f8fafc;
+border:1px solid rgba(216,224,235,0.88);
+border-radius:16px;
+}
+
+.delay-update-form input{
+min-width:180px;
+border-radius:12px;
+border:1px solid transparent;
+padding:6px 10px;
+font-size:0.82rem;
+background:#fff;
+font-weight:600;
+box-shadow:none;
+}
+
+.delay-update-form input:focus{
+border-color:#f29aaa;
+box-shadow:0 0 0 4px rgba(217,4,41,0.08);
+outline:none;
+}
+
+.delay-update-btn{
+border:none;
+border-radius:12px;
+padding:6px 10px;
+font-weight:600;
+font-size:0.8rem;
+line-height:1.1;
+background:#1f2937;
+color:#fff;
+min-width:78px;
+}
+
+.delay-update-btn:hover{
+background:#111827;
+}
+
+.delay-actions{
+display:flex;
+align-items:center;
+gap:10px;
+flex-wrap:nowrap;
+}
+
+.delay-delete-btn{
+display:inline-flex;
+align-items:center;
+justify-content:center;
+width:36px;
+height:36px;
+border:none;
+border-radius:12px;
+background:#dc2626;
+color:#fff;
+text-decoration:none;
+flex:0 0 auto;
+transition:background 0.2s ease, transform 0.2s ease;
+}
+
+.delay-delete-btn:hover{
+background:#b91c1c;
+transform:translateY(-1px);
+color:#fff;
+}
+
+body.dark-mode .delays-topbar,
+body.dark-mode .delays-panel{
+background:#1f2937;
+border-color:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .delays-topbar h1,
+body.dark-mode .delays-panel-header h2,
+body.dark-mode .flight-code{
+color:#e5e7eb;
+}
+
+body.dark-mode .delays-kicker,
+body.dark-mode .delays-topbar p,
+body.dark-mode .delays-chip small,
+body.dark-mode .delays-panel-header p,
+body.dark-mode .delays-badge,
+body.dark-mode .delays-table th,
+body.dark-mode .zero-delay{
+color:#cbd5e1;
+}
+
+body.dark-mode .delays-chip,
+body.dark-mode .delays-badge,
+body.dark-mode .delays-table th,
+body.dark-mode .delays-table tbody tr:hover,
+body.dark-mode .delay-update-form{
+background:#000;
+border-color:#1f2937;
+}
+
+body.dark-mode .delays-panel-header,
+body.dark-mode .delays-table td,
+body.dark-mode .delays-table th{
+border-color:#1f2937;
+}
+
+body.dark-mode .delays-chip-icon,
+body.dark-mode .delay-update-btn{
+background:#000;
+}
+
+body.dark-mode .delay-delete-btn{
+background:#7f1d1d;
+}
+
+body.dark-mode .delay-delete-btn:hover{
+background:#991b1b;
+}
+
+body.dark-mode .delay-update-form input{
+background:#1f2937;
+color:#e5e7eb;
+}
+
+body.dark-mode .gate-pill{
+background:#000;
+color:#cbd5e1;
+}
+
+@media (max-width: 768px){
+.delays-shell{
+padding:30px 18px 18px;
+}
+
+.delays-topbar{
+padding:20px 18px;
+}
+
+.delays-panel-header,
+.delays-panel-body{
+padding-left:18px;
+padding-right:18px;
+}
+
+.delays-chip{
+width:100%;
+}
+}
+</style>
+
+<div class="delays-shell">
+<div class="delays-topbar">
+<div style="min-width:0; flex:1 1 320px;">
+<div class="delays-kicker">Flights / <strong style="color:#d90429;">Delay Management</strong></div>
+<h1>Delay Management</h1>
+<p>Track delayed operations, compare adjusted timings, and update schedules directly from the control table.</p>
+</div>
+
+<div class="delays-chip">
+<div>
+<strong>{{ flights|length }} delayed flights</strong>
+<small>Active disruption list</small>
+</div>
+<div class="delays-chip-icon">
+<i class="fa-solid fa-clock-rotate-left"></i>
+</div>
+</div>
+</div>
+
+<section class="delays-panel">
+<div class="delays-panel-header">
+<div>
+<h2>Delayed Flights</h2>
+<p>Current delayed services with timing adjustments and operational status.</p>
+</div>
+<div class="delays-badge">{{ flights|length }} monitored</div>
+</div>
+
+<div class="delays-panel-body">
+<div class="delays-table-wrap">
+<table class="delays-table">
+<thead>
+<tr>
+<th>Flight</th>
+<th>Gate</th>
+<th>Scheduled Time</th>
+<th>Delay</th>
+<th>Status</th>
+<th>Update Time</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody>
+{% for f in flights %}
+<tr>
+<td class="flight-code">{{ f[1] }}</td>
+<td><span class="gate-pill">{{ f[2] }}</span></td>
+<td>{{ f[3].replace("T"," ") }}</td>
+<td>
+{% if f[5] %}
+<span class="delay-pill">+{{ f[5] }} min</span>
+{% else %}
+<span class="zero-delay">0 min</span>
+{% endif %}
+</td>
+<td><span class="status-pill">{{ f[4] }}</span></td>
+<td>
+<form method="POST" action="/update-delay" class="delay-update-form">
+<input type="hidden" name="id" value="{{ f[0] }}">
+<input type="datetime-local" name="new_time" required>
+<button class="delay-update-btn" type="submit">
+<i class="fa-solid fa-pen"></i> Save
+</button>
+</form>
+</td>
+<td>
+<div class="delay-actions">
+<a href="/delete-flight/{{ f[0] }}" class="delay-delete-btn" title="Delete flight">
+<i class="fa fa-trash"></i>
+</a>
+</div>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</div>
+
+{% endblock %}

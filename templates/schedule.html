@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block header_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<style>
+.schedule-shell{
+max-width:1280px;
+margin:0 auto;
+padding:40px 24px 24px;
+}
+
+.schedule-topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:20px;
+padding:22px 24px;
+background:#fff;
+border:1px solid rgba(216,224,235,0.85);
+border-radius:22px;
+box-shadow:0 14px 34px rgba(15, 23, 42, 0.05);
+flex-wrap:wrap;
+margin-bottom:24px;
+}
+
+.schedule-kicker{
+font-size:0.82rem;
+color:#6b7280;
+margin-bottom:6px;
+letter-spacing:0.14em;
+text-transform:uppercase;
+}
+
+.schedule-topbar h1{
+margin:0;
+font-size:2rem;
+line-height:1.1;
+font-weight:700;
+color:#1f2937;
+}
+
+.schedule-topbar p{
+margin:10px 0 0;
+color:#6b7280;
+max-width:720px;
+}
+
+.schedule-chip{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 14px;
+background:linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+border:1px solid rgba(216,224,235,0.9);
+border-radius:20px;
+min-width:220px;
+}
+
+.schedule-chip-icon{
+width:42px;
+height:42px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#1f1f1f;
+color:#fff;
+font-size:1rem;
+}
+
+.schedule-chip small{
+display:block;
+color:#6b7280;
+text-transform:uppercase;
+letter-spacing:0.08em;
+font-size:0.72rem;
+}
+
+.schedule-panel{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15, 23, 42, 0.06);
+overflow:hidden;
+}
+
+.schedule-panel-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 18px;
+border-bottom:1px solid rgba(216,224,235,0.55);
+}
+
+.schedule-panel-header h2{
+margin:0;
+font-size:1.2rem;
+font-weight:700;
+color:#1f2937;
+}
+
+.schedule-panel-header p{
+margin:8px 0 0;
+color:#6b7280;
+}
+
+.schedule-badge{
+padding:8px 12px;
+border-radius:999px;
+background:#f7f8fb;
+color:#6b7280;
+font-size:0.82rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.schedule-panel-body{
+padding:12px 24px 24px;
+}
+
+.schedule-table-wrap{
+overflow-x:auto;
+max-width:100%;
+max-height:640px;
+overflow-y:auto;
+}
+
+.schedule-table{
+width:100%;
+border-collapse:collapse;
+min-width:980px;
+}
+
+.schedule-table th,
+.schedule-table td{
+padding:12px 14px;
+text-align:left;
+border-bottom:1px solid rgba(216,224,235,0.8);
+vertical-align:middle;
+}
+
+.schedule-table th{
+font-size:0.82rem;
+text-transform:uppercase;
+letter-spacing:0.08em;
+color:#6b7280;
+background:#fafbfc;
+}
+
+.schedule-table tbody tr{
+transition:background 0.2s ease;
+}
+
+.schedule-table tbody tr:hover{
+background:#fafbfd;
+}
+
+.schedule-table tr:last-child td{
+border-bottom:none;
+}
+
+.flight-code{
+font-weight:700;
+color:#111827;
+}
+
+.gate-pill,
+.status-pill{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:6px 10px;
+border-radius:999px;
+font-size:0.78rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.gate-pill{
+background:#eef2f7;
+color:#475569;
+}
+
+.status-pill.on-time{ background:#dcfce7; color:#15803d; }
+.status-pill.boarding{ background:#dbeafe; color:#1d4ed8; }
+.status-pill.delayed{ background:#fef3c7; color:#d97706; }
+.status-pill.cancelled{ background:#fee2e2; color:#dc2626; }
+
+.schedule-status-form{
+display:flex;
+align-items:center;
+gap:6px;
+flex-wrap:nowrap;
+padding:4px;
+background:#f8fafc;
+border:1px solid rgba(216,224,235,0.88);
+border-radius:16px;
+}
+
+.schedule-status-form select{
+min-width:102px;
+border-radius:12px;
+border:1px solid transparent;
+padding:6px 10px;
+font-size:0.82rem;
+background:#fff;
+font-weight:600;
+box-shadow:none;
+}
+
+.schedule-status-form select:focus{
+border-color:#f29aaa;
+box-shadow:0 0 0 4px rgba(217,4,41,0.08);
+outline:none;
+}
+
+.schedule-save-btn{
+border:none;
+border-radius:12px;
+padding:6px 10px;
+font-weight:600;
+font-size:0.8rem;
+line-height:1.1;
+background:#1f2937;
+color:#fff;
+min-width:72px;
+}
+
+.schedule-save-btn:hover{
+background:#111827;
+}
+
+body.dark-mode .schedule-topbar,
+body.dark-mode .schedule-panel{
+background:#1f2937;
+border-color:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .schedule-topbar h1,
+body.dark-mode .schedule-panel-header h2,
+body.dark-mode .flight-code{
+color:#e5e7eb;
+}
+
+body.dark-mode .schedule-kicker,
+body.dark-mode .schedule-topbar p,
+body.dark-mode .schedule-chip small,
+body.dark-mode .schedule-panel-header p,
+body.dark-mode .schedule-badge,
+body.dark-mode .schedule-table th{
+color:#cbd5e1;
+}
+
+body.dark-mode .schedule-chip,
+body.dark-mode .schedule-badge,
+body.dark-mode .schedule-table th,
+body.dark-mode .schedule-table tbody tr:hover,
+body.dark-mode .schedule-status-form{
+background:#000;
+border-color:#1f2937;
+}
+
+body.dark-mode .schedule-panel-header,
+body.dark-mode .schedule-table td,
+body.dark-mode .schedule-table th{
+border-color:#1f2937;
+}
+
+body.dark-mode .schedule-chip-icon,
+body.dark-mode .schedule-save-btn{
+background:#000;
+}
+
+body.dark-mode .schedule-status-form select{
+background:#1f2937;
+color:#e5e7eb;
+}
+
+body.dark-mode .gate-pill{
+background:#000;
+color:#cbd5e1;
+}
+
+@media (max-width: 768px){
+.schedule-shell{
+padding:30px 18px 18px;
+}
+
+.schedule-topbar{
+padding:20px 18px;
+}
+
+.schedule-panel-header,
+.schedule-panel-body{
+padding-left:18px;
+padding-right:18px;
+}
+
+.schedule-chip{
+width:100%;
+}
+}
+</style>
+
+<div class="schedule-shell">
+<div class="schedule-topbar">
+<div style="min-width:0; flex:1 1 320px;">
+<div class="schedule-kicker">Flights / <strong style="color:#d90429;">{{ page_kicker }}</strong></div>
+<h1>{{ page_title }}</h1>
+<p>{{ page_description }}</p>
+</div>
+
+<div class="schedule-chip">
+<div>
+<strong>{{ flights|length }} scheduled flights</strong>
+<small>Monthly roster</small>
+</div>
+<div class="schedule-chip-icon">
+<i class="fa-solid fa-calendar-check"></i>
+</div>
+</div>
+</div>
+
+<section class="schedule-panel">
+<div class="schedule-panel-header">
+<div>
+<h2>{{ panel_title }}</h2>
+<p>{{ panel_description }}</p>
+</div>
+<div class="schedule-badge">{{ flights|length }} monitored</div>
+</div>
+
+<div class="schedule-panel-body">
+<div class="schedule-table-wrap">
+<table class="schedule-table">
+<thead>
+<tr>
+<th>Flight</th>
+<th>Departure</th>
+<th>Destination</th>
+<th>Gate</th>
+<th>Date &amp; Time</th>
+<th>Status</th>
+{% if editable %}
+<th>Edit</th>
+{% endif %}
+</tr>
+</thead>
+
+<tbody>
+{% for f in flights %}
+<tr>
+<td class="flight-code">{{ f[1] }}</td>
+<td>{{ f[2] }}</td>
+<td>{{ f[3] }}</td>
+<td><span class="gate-pill">{{ f[4] }}</span></td>
+<td>{{ f[5].replace("T"," ") }}</td>
+<td>
+<span class="status-pill {% if f[6] == 'On Time' %}on-time{% elif f[6] == 'Boarding' %}boarding{% elif f[6] == 'Delayed' %}delayed{% elif f[6] == 'Cancelled' %}cancelled{% endif %}">
+{{ f[6] }}
+</span>
+</td>
+{% if editable %}
+<td>
+<form method="POST" action="/update-flight-status/{{ f[0] }}" class="schedule-status-form">
+<input type="hidden" name="next" value="/flight-status">
+<select name="status">
+<option value="On Time" {% if f[6] == "On Time" %}selected{% endif %}>On Time</option>
+<option value="Boarding" {% if f[6] == "Boarding" %}selected{% endif %}>Boarding</option>
+<option value="Delayed" {% if f[6] == "Delayed" %}selected{% endif %}>Delayed</option>
+<option value="Cancelled" {% if f[6] == "Cancelled" %}selected{% endif %}>Cancelled</option>
+</select>
+<button class="schedule-save-btn" type="submit">
+<i class="fa-solid fa-pen"></i> Save
+</button>
+</form>
+</td>
+{% endif %}
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</div>
+
+{% endblock %}

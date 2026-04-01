@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Baggage Tracking</title>
+
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+
+:root{
+--bg:#f4f6f9;
+--panel:#ffffff;
+--line:#d8e0eb;
+--text:#1f2937;
+--muted:#6b7280;
+--accent:#d90429;
+}
+
+body{
+margin:0;
+background:var(--bg);
+font-family:Arial, Helvetica, sans-serif;
+color:var(--text);
+}
+
+body.dark-mode{
+background:#000 !important;
+color:#e5e7eb !important;
+}
+
+.logo{
+height:45px;
+}
+
+.page-wrap{
+width:100%;
+max-width:1280px;
+margin:0 auto;
+}
+
+.page-header{
+background:#fff;
+box-shadow:0 2px 10px rgba(0,0,0,0.08);
+margin-bottom:24px;
+border-bottom:1px solid rgba(216,224,235,0.85);
+}
+
+body.dark-mode .page-header{
+background:#1f2937 !important;
+border-color:#374151 !important;
+box-shadow:0 2px 10px rgba(0,0,0,0.3) !important;
+}
+
+.page-header .container{
+display:flex;
+align-items:center;
+gap:18px;
+padding:14px 24px;
+}
+
+.header-nav-link{
+color:var(--text);
+text-decoration:none;
+padding:8px 0;
+}
+
+body.dark-mode .header-nav-link{
+color:#e5e7eb !important;
+}
+
+.header-nav-link.active{
+font-weight:700;
+position:relative;
+}
+
+.header-nav-link.active::after{
+content:"";
+position:absolute;
+left:0;
+right:0;
+bottom:-14px;
+height:3px;
+border-radius:999px;
+background:var(--accent);
+}
+
+.header-profile{
+display:flex;
+align-items:center;
+gap:12px;
+margin-left:auto;
+}
+
+.header-avatar{
+width:44px;
+height:44px;
+border-radius:50%;
+object-fit:cover;
+border:2px solid #dee2e6;
+}
+
+.header-fallback{
+width:44px;
+height:44px;
+border-radius:50%;
+background:#dc3545;
+color:white;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:700;
+}
+
+.profile-access-link{
+text-decoration:none;
+color:inherit;
+display:flex;
+align-items:center;
+}
+
+.profile-access-link:hover{
+opacity:0.9;
+}
+
+.header-menu{
+position:relative;
+margin:0;
+}
+
+.header-menu summary{
+list-style:none;
+}
+
+.header-menu summary::-webkit-details-marker{
+display:none;
+}
+
+.header-menu-trigger{
+width:38px;
+height:38px;
+border:none;
+border-radius:50%;
+background:#f3f4f6;
+color:#374151;
+display:flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+}
+
+.header-menu-panel{
+position:absolute;
+top:46px;
+right:0;
+min-width:160px;
+background:white;
+border:1px solid #e5e7eb;
+border-radius:12px;
+box-shadow:0 12px 30px rgba(15,23,42,0.14);
+padding:8px;
+display:flex;
+flex-direction:column;
+gap:6px;
+z-index:1000;
+}
+
+.header-menu-item{
+width:100%;
+border:none;
+background:transparent;
+color:#1f2937;
+padding:10px 12px;
+border-radius:8px;
+display:flex;
+align-items:center;
+gap:10px;
+text-decoration:none;
+text-align:left;
+}
+
+.header-menu-item:hover{
+background:#f3f4f6;
+}
+
+.logout-link{
+color:#dc2626;
+}
+
+.main{
+padding:0 24px 32px;
+}
+
+.topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:20px;
+padding:22px 24px;
+background:#fff;
+border:1px solid rgba(216,224,235,0.85);
+border-radius:22px;
+box-shadow:0 14px 34px rgba(15, 23, 42, 0.05);
+flex-wrap:wrap;
+margin-bottom:24px;
+}
+
+.page-kicker{
+font-size:0.82rem;
+color:var(--muted);
+margin-bottom:6px;
+letter-spacing:0.14em;
+text-transform:uppercase;
+}
+
+.topbar h1{
+margin:0;
+font-size:2rem;
+line-height:1.1;
+font-weight:700;
+}
+
+.topbar p{
+margin:10px 0 0;
+color:var(--muted);
+max-width:700px;
+}
+
+.topbar-tools{
+display:flex;
+align-items:center;
+gap:14px;
+flex-wrap:wrap;
+justify-content:flex-end;
+margin-left:auto;
+}
+
+.admin-chip{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 14px;
+background:linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+border:1px solid rgba(216,224,235,0.9);
+border-radius:20px;
+min-width:220px;
+}
+
+.admin-chip-icon{
+width:42px;
+height:42px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#1f1f1f;
+color:#fff;
+font-size:1rem;
+}
+
+.admin-chip small{
+display:block;
+color:var(--muted);
+text-transform:uppercase;
+letter-spacing:0.08em;
+font-size:0.72rem;
+}
+
+.content-grid{
+display:grid;
+grid-template-columns:minmax(0, 1fr) minmax(0, 1.2fr);
+gap:22px;
+align-items:start;
+}
+
+.panel{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15, 23, 42, 0.06);
+overflow:hidden;
+}
+
+.panel-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 18px;
+border-bottom:1px solid rgba(216,224,235,0.55);
+}
+
+.panel-header h2{
+margin:0;
+font-size:1.2rem;
+font-weight:700;
+}
+
+.panel-header p{
+margin:8px 0 0;
+color:var(--muted);
+}
+
+.panel-badge{
+padding:8px 12px;
+border-radius:999px;
+background:#f7f8fb;
+color:var(--muted);
+font-size:0.82rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.panel-body{
+padding:24px;
+}
+
+.form-control,
+select.form-control{
+border-radius:16px;
+border:1px solid rgba(216,224,235,0.9);
+padding:12px 14px;
+box-shadow:none;
+}
+
+.form-control:focus,
+select.form-control:focus{
+border-color:#f29aaa;
+box-shadow:0 0 0 4px rgba(217,4,41,0.08);
+}
+
+.add-btn,
+.filter-btn,
+.reset-btn,
+.delete-btn{
+border-radius:14px;
+padding:10px 14px;
+font-weight:600;
+}
+
+.add-action{
+display:flex;
+justify-content:center;
+margin-top:18px;
+}
+
+.baggage-filter{
+display:flex;
+align-items:end;
+justify-content:center;
+gap:16px;
+flex-wrap:nowrap;
+margin-bottom:16px;
+padding:18px 22px;
+border:1px solid rgba(216,224,235,0.82);
+border-radius:22px;
+background:#fbfcfe;
+overflow:hidden;
+}
+
+.filter-field{
+display:flex;
+flex-direction:column;
+gap:8px;
+min-width:0;
+flex:1 1 0;
+}
+
+.filter-field label{
+font-size:0.9rem;
+font-weight:600;
+color:#495057;
+margin-left:2px;
+}
+
+.filter-actions{
+display:flex;
+align-items:end;
+gap:10px;
+flex:0 0 auto;
+padding-left:6px;
+margin-left:4px;
+border-left:1px solid rgba(216,224,235,0.82);
+}
+
+.table-wrap{
+overflow-x:auto;
+max-width:100%;
+max-height:580px;
+overflow-y:auto;
+}
+
+.data-table{
+width:100%;
+border-collapse:collapse;
+min-width:1100px;
+}
+
+.data-table th,
+.data-table td{
+padding:12px 14px;
+text-align:left;
+border-bottom:1px solid rgba(216,224,235,0.8);
+vertical-align:middle;
+}
+
+.data-table th{
+font-size:0.82rem;
+text-transform:uppercase;
+letter-spacing:0.08em;
+color:var(--muted);
+background:#fafbfc;
+}
+
+.data-table tbody tr:hover{
+background:#fafbfd;
+}
+
+.data-table tr:last-child td{
+border-bottom:none;
+}
+
+.tag-pill,
+.flight-pill,
+.weight-pill,
+.status-pill,
+.location-pill{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:6px 10px;
+border-radius:999px;
+font-size:0.78rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.tag-pill{
+background:#eef2f7;
+color:#475569;
+}
+
+.flight-pill{
+background:#dbeafe;
+color:#1d4ed8;
+}
+
+.weight-pill{
+background:#fef3c7;
+color:#d97706;
+}
+
+.status-pill{
+background:#dcfce7;
+color:#15803d;
+}
+
+.location-pill{
+background:#fee2e2;
+color:#dc2626;
+}
+
+.passenger-name{
+font-weight:700;
+color:#111827;
+}
+
+.footer{
+margin-top:28px;
+background:#1f1f1f;
+color:#fff;
+padding:25px;
+text-align:center;
+}
+
+body.dark-mode .page-header,
+body.dark-mode .topbar,
+body.dark-mode .panel{
+background:#1f2937 !important;
+color:#e5e7eb !important;
+border-color:#374151 !important;
+}
+
+body.dark-mode .footer{
+background:#111827 !important;
+color:#e5e7eb !important;
+}
+
+body.dark-mode .header-profile{
+color:#e5e7eb;
+}
+
+body.dark-mode .header-profile .fw-semibold{
+color:#e5e7eb;
+}
+
+body.dark-mode .header-nav-link,
+body.dark-mode .page-kicker,
+body.dark-mode .topbar p,
+body.dark-mode .admin-chip small,
+body.dark-mode .panel-header p,
+body.dark-mode .panel-badge,
+body.dark-mode .data-table th,
+body.dark-mode .filter-field label,
+body.dark-mode .text-muted,
+body.dark-mode .text-uppercase{
+color:#cbd5e1 !important;
+}
+
+body.dark-mode .admin-chip,
+body.dark-mode .panel-badge,
+body.dark-mode .data-table th,
+body.dark-mode .data-table tbody tr:hover,
+body.dark-mode .baggage-filter{
+background:#000;
+border-color:#1f2937;
+}
+
+body.dark-mode .filter-actions{
+border-left-color:#1f2937;
+}
+
+body.dark-mode .panel-header,
+body.dark-mode .data-table td,
+body.dark-mode .data-table th{
+border-color:#1f2937;
+}
+
+body.dark-mode .form-control,
+body.dark-mode select{
+background:#e5e7eb;
+color:#111827;
+border-color:#9ca3af;
+}
+
+body.dark-mode .form-control::placeholder{
+color:#9ca3af;
+opacity:1;
+}
+
+body.dark-mode .form-control:readonly,
+body.dark-mode input:readonly{
+background:#6b7280;
+color:#e5e7eb;
+}
+
+body.dark-mode .input-group-text{
+background:#d1d5db;
+color:#111827;
+border-color:#9ca3af;
+}
+
+body.dark-mode .input-group .form-select{
+background:#d1d5db;
+color:#111827;
+border-color:#9ca3af;
+}
+
+body.dark-mode .btn-outline-secondary{
+color:#cbd5e1;
+border-color:#cbd5e1;
+}
+
+body.dark-mode .btn-outline-secondary:hover{
+background:#cbd5e1;
+color:#1f2937;
+}
+
+body.dark-mode .topbar h1{
+color:#e5e7eb;
+}
+
+body.dark-mode .admin-chip-icon{
+background:#374151;
+}
+
+body.dark-mode .fw-semibold,
+body.dark-mode strong{
+color:#e5e7eb;
+}
+
+body.dark-mode .panel-header h2{
+color:#e5e7eb;
+}
+
+body.dark-mode .header-menu-item{
+color:#e5e7eb;
+}
+
+body.dark-mode .header-menu-item:hover{
+background:#000;
+}
+
+body.dark-mode .passenger-name{
+color:#e5e7eb;
+}
+
+body.dark-mode .alert{
+background:#1f2937;
+color:#e5e7eb;
+border-color:#374151;
+}
+
+body.dark-mode .alert-danger{
+background:#7f1d1d;
+color:#fecaca;
+border-color:#dc2626;
+}
+
+body.dark-mode .alert-light{
+background:#1f2937;
+color:#e5e7eb;
+border-color:#374151;
+}
+
+body.dark-mode .tag-pill{
+background:#2d3748;
+color:#cbd5e1;
+}
+
+body.dark-mode .flight-pill{
+background:#1e3a8a;
+color:#93c5fd;
+}
+
+body.dark-mode .weight-pill{
+background:#78350f;
+color:#fcd34d;
+}
+
+body.dark-mode .status-pill{
+background:#064e3b;
+color:#86efac;
+}
+
+body.dark-mode .location-pill{
+background:#7f1d1d;
+color:#fca5a5;
+}
+
+body.dark-mode .header-menu-panel{
+background:#1f2937;
+border-color:#374151;
+}
+
+@media (max-width: 992px){
+.content-grid{
+grid-template-columns:1fr;
+}
+}
+
+@media (max-width: 768px){
+.main{
+padding:0 18px 24px;
+}
+
+.page-header .container{
+padding:14px 18px;
+flex-wrap:wrap;
+}
+
+.topbar{
+padding:20px 18px;
+}
+
+.topbar-tools{
+width:100%;
+justify-content:flex-start;
+margin-left:0;
+}
+
+.admin-chip{
+width:100%;
+}
+
+.panel-header,
+.panel-body{
+padding-left:18px;
+padding-right:18px;
+}
+
+.baggage-filter{
+flex-wrap:wrap;
+justify-content:flex-start;
+}
+
+.filter-actions{
+width:100%;
+justify-content:flex-start;
+padding-left:0;
+margin-left:0;
+border-left:none;
+}
+}
+
+</style>
+
+</head>
+
+<body>
+
+<nav class="page-header">
+<div class="container page-wrap">
+
+<a href="/dashboard">
+<img src="/static/tunisair.png" class="logo">
+</a>
+
+<a href="/dashboard" class="header-nav-link">Dashboard</a>
+<a class="header-nav-link active">Baggage Tracking</a>
+
+{% if admin_profile %}
+<div class="header-profile">
+<a href="/edit-profile" class="profile-access-link">
+<div class="text-end">
+<div class="fw-semibold">{{ admin_profile[0] }}</div>
+<div class="text-muted small text-uppercase">{{ admin_profile[1] }}</div>
+</div>
+</a>
+
+{% if admin_profile[2] %}
+<a href="/edit-profile" class="profile-access-link">
+<img src="/static/uploads/users/{{ admin_profile[2] }}" alt="Admin profile" class="header-avatar">
+</a>
+{% else %}
+<a href="/edit-profile" class="profile-access-link">
+<div class="header-fallback">A</div>
+</a>
+{% endif %}
+
+<details class="header-menu">
+<summary class="header-menu-trigger">
+<i class="fa-solid fa-ellipsis-vertical"></i>
+</summary>
+<div class="header-menu-panel">
+<button type="button" class="header-menu-item darkModeToggle">
+<i class="fa-solid fa-moon"></i>
+Dark Mode
+</button>
+<a href="/logout" class="header-menu-item logout-link">
+<i class="fa-solid fa-right-from-bracket"></i>
+Log Off
+</a>
+</div>
+</details>
+</div>
+{% endif %}
+
+</div>
+</nav>
+
+<main class="main">
+<div class="page-wrap">
+
+<div class="topbar">
+<div style="min-width:0; flex:1 1 320px;">
+<div class="page-kicker">Operations / <strong style="color:#d90429;">Baggage Tracking</strong></div>
+<h1>Baggage Tracking</h1>
+<p>Register baggage, calculate extra-weight pricing, and monitor baggage flow by flight and date from one operations view.</p>
+</div>
+
+<div class="topbar-tools">
+<div class="admin-chip">
+<div>
+<strong>{{ baggage|length }} baggage items</strong>
+<small>Tracking registry</small>
+</div>
+<div class="admin-chip-icon">
+<i class="fa-solid fa-suitcase-rolling"></i>
+</div>
+</div>
+</div>
+</div>
+
+<div class="content-grid">
+<section class="panel">
+<div class="panel-header">
+<div>
+<h2>Add Baggage</h2>
+<p>Create a baggage record with passenger, flight, weight, and current processing location.</p>
+</div>
+<div class="panel-badge">New entry</div>
+</div>
+
+<div class="panel-body">
+{% if request.args.get("error") == "tag_exists" %}
+<div class="alert alert-danger mb-4" role="alert">
+<i class="fas fa-exclamation-circle"></i> Baggage ID already exists
+</div>
+{% elif request.args.get("error") == "baggage_duplicate" %}
+<div class="alert alert-danger mb-4" role="alert">
+<i class="fas fa-exclamation-circle"></i> Baggage already exists for this passenger on this flight
+</div>
+{% elif request.args.get("error") == "invalid_weight" %}
+<div class="alert alert-danger mb-4" role="alert">
+<i class="fas fa-exclamation-circle"></i> Weight must be greater than 0 kg and no more than 43 kg
+</div>
+{% elif request.args.get("error") == "flight_not_found" %}
+<div class="alert alert-danger mb-4" role="alert">
+<i class="fas fa-exclamation-circle"></i> Selected flight does not exist
+</div>
+{% elif request.args.get("error") == "missing_fields" %}
+<div class="alert alert-danger mb-4" role="alert">
+<i class="fas fa-exclamation-circle"></i> Please fill in all required fields
+</div>
+{% endif %}
+
+<form method="POST" action="/add-baggage" id="baggageForm" novalidate>
+<div class="row g-3">
+<div class="col-md-6">
+<input class="form-control" name="tag" placeholder="Tag ID" required>
+</div>
+
+<div class="col-md-6">
+<select class="form-control" name="passenger_id" id="baggagePassengerSelect" required disabled>
+<option value="" selected disabled>Select Flight First</option>
+{% for p in passengers %}
+<option value="{{p[0]}}" data-flight="{{p[2]}}">{{p[1]}}</option>
+{% endfor %}
+</select>
+</div>
+
+<div class="col-md-6">
+<select class="form-control" name="flight_id" id="baggageFlightSelect" required>
+<option value="" selected disabled>Select Flight</option>
+{% for f in flights %}
+<option value="{{f[0]}}" data-departure="{{f[2]}}" data-destination="{{f[3]}}" data-gate="{{f[4]}}">{{f[1]}}</option>
+{% endfor %}
+</select>
+</div>
+
+<div class="col-md-6">
+<div class="input-group">
+<input type="number" step="0.1" min="0.1" max="43" class="form-control" id="weightInput" name="weight" placeholder="Weight (up to 43 kg)" required>
+<span class="input-group-text">kg</span>
+</div>
+<small class="text-muted">23kg included, excess up to 43kg is charged as extra weight</small>
+</div>
+
+<div class="col-md-6">
+<div class="input-group">
+<input type="number" step="0.1" min="0" class="form-control" id="extraWeightDisplay" placeholder="Extra weight (auto-calculated)" readonly>
+<span class="input-group-text">kg</span>
+</div>
+<small class="text-muted">Calculated from excess weight</small>
+<input type="hidden" id="extraWeight" name="extra_weight" value="0">
+</div>
+
+<div class="col-md-6">
+<div class="input-group">
+<input class="form-control" id="price" name="price" placeholder="Calculated from extra weight" readonly>
+<select class="form-select" id="priceCurrency" style="max-width:110px;">
+<option value="TND" selected>DT</option>
+<option value="EUR">EUR</option>
+<option value="USD">USD</option>
+<option value="GBP">GBP</option>
+</select>
+</div>
+</div>
+
+<div class="col-md-6">
+<input class="form-control" id="baggageLocationPreview" placeholder="Location auto-filled from flight" readonly>
+</div>
+
+<div class="col-md-6">
+<select class="form-control" name="status" id="baggageStatusSelect">
+<option>Checked-in</option>
+<option>Security</option>
+<option>Sorting</option>
+<option>Loading</option>
+<option>Arrived</option>
+</select>
+</div>
+</div>
+
+<div class="add-action">
+<button class="btn btn-danger add-btn" type="submit">Add Baggage</button>
+</div>
+</form>
+</div>
+</section>
+
+<section class="panel">
+<div class="panel-header">
+<div>
+<h2>Baggage Status</h2>
+<p>Track baggage records by flight and time range, then review their current status and location.</p>
+</div>
+<div class="panel-badge">{{ baggage|length }} listed</div>
+</div>
+
+<div class="panel-body" style="padding-top:12px;">
+{% if filter_error %}
+<div class="alert alert-danger mb-3">
+{{ filter_error }}
+</div>
+{% endif %}
+
+<form method="GET" action="/baggage" class="baggage-filter">
+<div class="filter-field">
+<label>Flight</label>
+<select class="form-control" name="flight">
+<option value="">All Flights</option>
+{% for f in flights %}
+<option value="{{f[0]}}" {% if selected_flight == f[0]|string %}selected{% endif %}>{{f[1]}}</option>
+{% endfor %}
+</select>
+</div>
+
+<div class="filter-field">
+<label>Start Date</label>
+<input type="date" class="form-control" id="baggageStartDate" name="date" value="{{ selected_date }}">
+</div>
+
+<div class="filter-field">
+<label>End Date</label>
+<input type="date" class="form-control" id="baggageEndDate" name="end_date" value="{{ selected_end_date }}">
+</div>
+
+<div class="filter-field">
+<label>Filter Type</label>
+<select class="form-control" id="baggageFilterType" name="filter">
+<option value="day" {% if filter_type == "day" %}selected{% endif %}>Day</option>
+<option value="week" {% if filter_type == "week" %}selected{% endif %}>Week</option>
+<option value="month" {% if filter_type == "month" %}selected{% endif %}>Month</option>
+<option value="year" {% if filter_type == "year" %}selected{% endif %}>Year</option>
+</select>
+</div>
+
+<div class="filter-actions">
+<button class="btn btn-danger filter-btn" type="submit">Filter</button>
+<a href="/baggage" class="btn btn-outline-secondary reset-btn">Reset</a>
+</div>
+</form>
+
+{% if filter_summary %}
+<div class="alert alert-light border text-center mb-3">
+{{ filter_summary }}
+</div>
+{% endif %}
+
+<div class="table-wrap">
+<table class="data-table">
+<thead>
+<tr>
+<th>ID</th>
+<th>Tag</th>
+<th>Passenger</th>
+<th>Flight</th>
+<th>Weight</th>
+<th>Extra</th>
+<th>Price</th>
+<th>Status</th>
+<th>Location</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody>
+{% for b in baggage %}
+<tr>
+<td>{{ b[0] }}</td>
+<td><span class="tag-pill">{{ b[1] }}</span></td>
+<td class="passenger-name">{{ b[2] }}</td>
+<td><span class="flight-pill">{{ b[3] }}</span></td>
+<td><span class="weight-pill">{{ b[4] }} kg</span></td>
+<td><span class="weight-pill">{{ b[5] }} kg</span></td>
+<td>{{ b[6] }} DT</td>
+<td><span class="status-pill">{{ b[7] }}</span></td>
+<td><span class="location-pill">{{ b[8] }}</span></td>
+<td>
+<a href="/delete-baggage/{{b[0]}}{% if selected_flight or selected_date or selected_end_date or filter_type %}?{% endif %}{% if selected_flight %}flight={{selected_flight}}{% endif %}{% if selected_flight and (selected_date or selected_end_date or filter_type) %}&{% endif %}{% if selected_date %}date={{selected_date}}{% endif %}{% if selected_date and (selected_end_date or filter_type) %}&{% endif %}{% if selected_end_date %}end_date={{selected_end_date}}{% endif %}{% if selected_end_date and filter_type %}&{% endif %}{% if filter_type %}filter={{filter_type}}{% endif %}"
+class="btn btn-danger btn-sm delete-btn">
+Delete
+</a>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</div>
+
+</div>
+</main>
+
+<div class="footer">
+<p>Airline Operations System</p>
+<p>operations@tunisair.com</p>
+<p>© 2026 Tunisair Operations Platform</p>
+</div>
+
+<script>
+
+const extraInput = document.getElementById("extraWeight")
+const extraWeightDisplay = document.getElementById("extraWeightDisplay")
+const priceField = document.getElementById("price")
+const weightInput = document.getElementById("weightInput")
+const priceCurrency = document.getElementById("priceCurrency")
+const baggageFlightSelect = document.getElementById("baggageFlightSelect")
+const baggagePassengerSelect = document.getElementById("baggagePassengerSelect")
+const baggageLocationPreview = document.getElementById("baggageLocationPreview")
+const baggageStatusSelect = document.getElementById("baggageStatusSelect")
+const baggageForm = document.getElementById("baggageForm")
+const extraWeightAlert = document.getElementById("extraWeightAlert")
+const baggagePassengerOptions = Array.from(baggagePassengerSelect.querySelectorAll("option[data-flight]"))
+const conversionCache = { TND: 1 }
+let basePriceDt = null
+
+function formatConvertedPrice(amount, currency){
+const suffix = currency === "TND" ? "DT" : currency
+return `${amount.toFixed(2)} ${suffix}`
+}
+
+function renderPriceDisplay(){
+if(basePriceDt === null){
+priceField.value = ""
+return
+}
+
+const currency = priceCurrency.value
+
+if(currency === "TND"){
+priceField.value = formatConvertedPrice(basePriceDt, currency)
+return
+}
+
+if(conversionCache[currency]){
+priceField.value = formatConvertedPrice(basePriceDt * conversionCache[currency], currency)
+return
+}
+
+priceField.value = "Loading rate..."
+
+fetch(`https://open.er-api.com/v6/latest/TND`)
+.then(response => response.json())
+.then(data => {
+const rate = data && data.rates ? data.rates[currency] : null
+
+if(!rate){
+priceField.value = "Rate unavailable"
+return
+}
+
+conversionCache[currency] = rate
+priceField.value = formatConvertedPrice(basePriceDt * rate, currency)
+})
+.catch(() => {
+priceField.value = "Rate unavailable"
+})
+}
+
+// Calculate extra weight based on weight input
+function updateExtraWeight(){
+const weight = parseFloat(weightInput.value)
+
+if(Number.isNaN(weight) || weight <= 0){
+extraWeightDisplay.value = ""
+extraInput.value = "0"
+basePriceDt = null
+renderPriceDisplay()
+return
+}
+
+if(weight > 43){
+weightInput.value = "43"
+extraWeightDisplay.value = "20"
+extraInput.value = "20"
+basePriceDt = 20 * 25
+renderPriceDisplay()
+return
+}
+
+// Extra weight = weight - 23 (or 0 if weight <= 23)
+const extraWeight = Math.max(0, weight - 23)
+
+extraWeightDisplay.value = extraWeight
+extraInput.value = extraWeight
+
+// Calculate price: extra_weight * 25
+basePriceDt = extraWeight * 25
+renderPriceDisplay()
+}
+
+function syncExtraWeightState(){
+updateExtraWeight()
+}
+
+// Listen to weight input changes
+weightInput.addEventListener("input", updateExtraWeight)
+priceCurrency.addEventListener("change", renderPriceDisplay)
+
+baggageForm.addEventListener("submit", event => {
+const weight = parseFloat(weightInput.value)
+const extra = parseFloat(extraInput.value)
+
+if(Number.isNaN(weight) || weight <= 0 || weight > 43){
+event.preventDefault()
+weightInput.value = weight > 43 ? "43" : ""
+syncExtraWeightState()
+weightInput.focus()
+return
+}
+
+if(!Number.isNaN(extra) && extra > 20){
+event.preventDefault()
+weightInput.value = "43"
+syncExtraWeightState()
+weightInput.focus()
+}
+})
+
+syncExtraWeightState()
+
+function syncBaggageLocation(){
+const selectedFlightOption = baggageFlightSelect.options[baggageFlightSelect.selectedIndex]
+
+if(!selectedFlightOption || !selectedFlightOption.value){
+baggageLocationPreview.value = ""
+return
+}
+
+const departure = selectedFlightOption.dataset.departure || ""
+const destination = selectedFlightOption.dataset.destination || ""
+
+baggageLocationPreview.value = baggageStatusSelect.value === "Arrived" ? destination : departure
+}
+
+function syncBaggagePassengers(){
+const selectedFlight = baggageFlightSelect.value
+const selectedFlightOption = baggageFlightSelect.options[baggageFlightSelect.selectedIndex]
+
+baggagePassengerOptions.forEach(option => {
+option.hidden = option.dataset.flight !== selectedFlight
+})
+
+baggagePassengerSelect.innerHTML = ""
+
+const placeholder = document.createElement("option")
+placeholder.value = ""
+placeholder.disabled = true
+placeholder.selected = true
+
+if(!selectedFlight){
+placeholder.textContent = "Select Flight First"
+baggagePassengerSelect.appendChild(placeholder)
+baggagePassengerSelect.disabled = true
+baggageLocationPreview.value = ""
+return
+}
+
+placeholder.textContent = "Select Passenger"
+baggagePassengerSelect.appendChild(placeholder)
+baggagePassengerSelect.disabled = false
+syncBaggageLocation()
+
+baggagePassengerOptions
+.filter(option => option.dataset.flight === selectedFlight)
+.forEach(option => baggagePassengerSelect.appendChild(option))
+}
+
+baggageFlightSelect.addEventListener("change", syncBaggagePassengers)
+baggageStatusSelect.addEventListener("change", syncBaggageLocation)
+syncBaggagePassengers()
+
+const savedTheme = localStorage.getItem("theme")
+if(savedTheme === "dark"){
+document.body.classList.add("dark-mode")
+}
+
+document.querySelectorAll(".darkModeToggle").forEach(button => {
+button.addEventListener("click", (e) => {
+e.preventDefault()
+e.stopPropagation()
+console.log("Dark mode toggle clicked")
+document.body.classList.toggle("dark-mode")
+const isDark = document.body.classList.contains("dark-mode")
+console.log("Dark mode is now:", isDark)
+localStorage.setItem("theme", isDark ? "dark" : "light")
+
+// Close the details menu
+const detailsElement = button.closest("details")
+if(detailsElement){
+detailsElement.open = false
+}
+})
+})
+
+const baggageFilterType = document.getElementById("baggageFilterType")
+const baggageStartDate = document.getElementById("baggageStartDate")
+const baggageEndDate = document.getElementById("baggageEndDate")
+
+function syncBaggageDateRange(){
+if(!baggageFilterType || !baggageEndDate || !baggageStartDate){
+return
+}
+
+if(baggageFilterType.value === "day"){
+baggageEndDate.value = ""
+baggageEndDate.disabled = true
+}else{
+baggageEndDate.disabled = false
+baggageEndDate.min = baggageStartDate.value
+}
+}
+
+if(baggageFilterType){
+baggageFilterType.addEventListener("change", syncBaggageDateRange)
+baggageStartDate.addEventListener("change", () => {
+baggageEndDate.min = baggageStartDate.value
+})
+syncBaggageDateRange()
+}
+
+</script>
+
+</body>
+
+</html>

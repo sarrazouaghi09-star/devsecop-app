@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Tunisair Operations Platform</title>
+
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+
+body{
+font-family:Arial, Helvetica, sans-serif;
+background:#f4f6f9;
+}
+
+body.dark-mode{
+background:#000;
+color:#e5e7eb;
+}
+
+/* HEADER */
+
+.navbar{
+background:white;
+box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+.logo{
+height:45px;
+}
+
+.header-profile{
+display:flex;
+align-items:center;
+gap:12px;
+margin-left:32px;
+padding-left:12px;
+}
+
+.dashboard-tools{
+margin-left:auto;
+display:flex;
+align-items:center;
+gap:18px;
+}
+
+.dashboard-search{
+display:flex;
+align-items:center;
+gap:0;
+min-width:340px;
+max-width:420px;
+width:100%;
+}
+
+.dashboard-search .input-group-text{
+height:42px;
+border-top-right-radius:0;
+border-bottom-right-radius:0;
+}
+
+.dashboard-search .position-relative{
+flex:1 1 auto;
+}
+
+.dashboard-search .form-control{
+height:42px;
+border-top-left-radius:0;
+border-bottom-left-radius:0;
+}
+
+.header-avatar{
+width:44px;
+height:44px;
+border-radius:50%;
+object-fit:cover;
+border:2px solid #dee2e6;
+}
+
+.header-fallback{
+width:44px;
+height:44px;
+border-radius:50%;
+background:#dc3545;
+color:white;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:700;
+}
+
+.profile-access-link{
+text-decoration:none;
+color:inherit;
+display:flex;
+align-items:center;
+}
+
+.profile-access-link:hover{
+opacity:0.9;
+}
+
+.header-menu{
+position:relative;
+margin:0;
+}
+
+.header-menu summary{
+list-style:none;
+}
+
+.header-menu summary::-webkit-details-marker{
+display:none;
+}
+
+.header-menu-trigger{
+width:38px;
+height:38px;
+border:none;
+border-radius:50%;
+background:#f3f4f6;
+color:#374151;
+display:flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+}
+
+.header-menu-panel{
+position:absolute;
+top:46px;
+right:0;
+min-width:160px;
+background:white;
+border:1px solid #e5e7eb;
+border-radius:12px;
+box-shadow:0 12px 30px rgba(15,23,42,0.14);
+padding:8px;
+display:flex;
+flex-direction:column;
+gap:6px;
+z-index:1000;
+}
+
+.header-menu-item{
+width:100%;
+border:none;
+background:transparent;
+color:#1f2937;
+padding:10px 12px;
+border-radius:8px;
+display:flex;
+align-items:center;
+gap:10px;
+text-decoration:none;
+text-align:left;
+}
+
+.header-menu-item:hover{
+background:#f3f4f6;
+}
+
+.logout-link{
+color:#dc2626;
+}
+.discover-menu{
+position:relative;
+}
+
+.discover-panel{
+
+position:absolute;
+top:40px;
+left:0;
+
+background:white;
+padding:20px;
+
+display:flex;
+gap:30px;
+
+border-radius:10px;
+
+box-shadow:0 10px 25px rgba(0,0,0,0.2);
+
+opacity:0;
+visibility:hidden;
+transition:0.3s;
+}
+
+.discover-menu:hover .discover-panel{
+
+opacity:1;
+visibility:visible;
+
+}
+
+.stat-item{
+
+text-align:center;
+
+}
+
+.stat-item p{
+
+font-size:24px;
+font-weight:bold;
+color:#d90429;
+
+}
+.manage-menu{
+position:relative;
+}
+
+.manage-panel{
+
+position:absolute;
+top:40px;
+left:0;
+
+background:white;
+width:220px;
+
+border-radius:8px;
+
+box-shadow:0 10px 25px rgba(0,0,0,0.2);
+
+display:flex;
+flex-direction:column;
+
+opacity:0;
+visibility:hidden;
+
+transition:0.3s;
+
+}
+
+.manage-menu:hover .manage-panel{
+
+opacity:1;
+visibility:visible;
+
+}
+
+.manage-item{
+
+padding:12px 16px;
+
+text-decoration:none;
+color:#333;
+
+display:flex;
+align-items:center;
+
+gap:10px;
+
+transition:0.2s;
+
+}
+
+.manage-item:hover{
+
+background:#f4f6f9;
+
+color:#d90429;
+
+}
+
+/* HERO */
+
+.hero{
+height:400px;
+background-image:url("https://images.unsplash.com/photo-1436491865332-7a61a109cc05");
+background-size:cover;
+background-position:center;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+color:white;
+text-shadow:0 3px 10px rgba(0,0,0,0.7);
+}
+
+.hero h1{
+font-size:42px;
+font-weight:bold;
+}
+
+/* SEARCH BOX */
+
+.search-box{
+margin-top:-80px;
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 15px 35px rgba(0,0,0,0.25);
+}
+
+/* OPERATIONS */
+
+.operations{
+margin-top:60px;
+}
+
+.operation-card{
+background:white;
+padding:30px;
+border-radius:12px;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+text-align:center;
+transition:0.3s;
+}
+
+.operation-card:hover{
+transform:translateY(-5px);
+}
+
+.operation-icon{
+font-size:40px;
+color:#d90429;
+margin-bottom:10px;
+}
+
+/* FOOTER */
+
+.footer{
+margin-top:80px;
+background:#1f1f1f;
+color:white;
+padding:30px;
+text-align:center;
+}
+
+body.dark-mode .navbar,
+body.dark-mode .search-box,
+body.dark-mode .operation-card,
+body.dark-mode .manage-panel,
+body.dark-mode .discover-panel,
+body.dark-mode .footer{
+background:#1f2937 !important;
+color:#e5e7eb !important;
+}
+
+body.dark-mode .header-menu-trigger{
+background:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .header-menu-panel{
+background:#1f2937;
+border-color:#000;
+}
+
+body.dark-mode .header-menu-item{
+color:#e5e7eb;
+}
+
+body.dark-mode .header-menu-item:hover{
+background:#000;
+}
+
+body.dark-mode .manage-item,
+body.dark-mode .nav-link,
+body.dark-mode .text-muted{
+color:#e5e7eb !important;
+}
+
+body.dark-mode .manage-item:hover,
+body.dark-mode .manage-item:focus{
+background:#111827;
+color:#ef4444 !important;
+}
+
+body.dark-mode .form-control,
+body.dark-mode select,
+body.dark-mode .input-group-text{
+background:#e5e7eb;
+color:#111827;
+border-color:#9ca3af;
+}
+
+body.dark-mode .form-control::placeholder{
+color:#9ca3af;
+opacity:1;
+}
+
+.live-board-shell{
+max-width:1280px;
+margin:0 auto;
+padding:0 12px;
+}
+
+.live-board-panel{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15,23,42,0.06);
+overflow:hidden;
+}
+
+.live-board-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 18px;
+border-bottom:1px solid rgba(216,224,235,0.55);
+}
+
+.live-board-header h3{
+margin:0;
+font-size:1.55rem;
+font-weight:700;
+color:#1f2937;
+}
+
+.live-board-header p{
+margin:8px 0 0;
+color:#6b7280;
+}
+
+.live-board-badge{
+padding:8px 12px;
+border-radius:999px;
+background:#f7f8fb;
+color:#6b7280;
+font-size:0.82rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.live-board-body{
+padding:12px 24px 24px;
+}
+
+.live-board-table-wrap{
+overflow:auto;
+max-width:100%;
+}
+
+.live-board-table{
+width:100%;
+border-collapse:collapse;
+min-width:880px;
+}
+
+.live-board-table th,
+.live-board-table td{
+padding:12px 14px;
+text-align:left;
+border-bottom:1px solid rgba(216,224,235,0.8);
+vertical-align:middle;
+}
+
+.live-board-table th{
+font-size:0.82rem;
+text-transform:uppercase;
+letter-spacing:0.08em;
+color:#6b7280;
+background:#fafbfc;
+}
+
+.live-board-table tbody tr{
+transition:background 0.2s ease;
+}
+
+.live-board-table tbody tr:hover{
+background:#fafbfd;
+}
+
+.live-board-table tr:last-child td{
+border-bottom:none;
+}
+
+.board-flight{
+font-weight:700;
+color:#111827;
+}
+
+.board-city{
+display:inline-flex;
+align-items:center;
+gap:8px;
+}
+
+.board-flag{
+width:18px;
+height:18px;
+border-radius:50%;
+object-fit:cover;
+box-shadow:0 0 0 1px rgba(15,23,42,0.08);
+}
+
+.board-gate,
+.board-status{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:6px 10px;
+border-radius:999px;
+font-size:0.78rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.board-gate{
+background:#eef2f7;
+color:#475569;
+}
+
+.board-status.on-time{
+background:#dcfce7;
+color:#15803d;
+}
+
+.board-status.boarding{
+background:#dbeafe;
+color:#1d4ed8;
+}
+
+.board-status.delayed{
+background:#fee2e2;
+color:#dc2626;
+}
+
+.board-time{
+font-weight:600;
+color:#334155;
+}
+
+body.dark-mode .live-board-panel{
+background:#1f2937;
+border-color:#000;
+}
+
+body.dark-mode .live-board-header{
+border-color:#1f2937;
+}
+
+body.dark-mode .live-board-header h3,
+body.dark-mode .board-flight,
+body.dark-mode .board-time{
+color:#e5e7eb;
+}
+
+body.dark-mode .live-board-header p,
+body.dark-mode .live-board-badge,
+body.dark-mode .live-board-table th{
+color:#cbd5e1;
+}
+
+body.dark-mode .live-board-badge,
+body.dark-mode .live-board-table tbody tr:hover{
+background:#000;
+border-color:#1f2937;
+}
+
+body.dark-mode .live-board-table th{
+background:#000;
+border-color:#111827;
+}
+
+body.dark-mode .live-board-table td,
+body.dark-mode .live-board-table th{
+border-color:#1f2937;
+}
+
+body.dark-mode .live-board-table td{
+background:#1f2937;
+color:#e5e7eb;
+}
+
+body.dark-mode .live-board-table tbody tr:nth-child(even) td{
+background:#111827;
+}
+
+body.dark-mode .live-board-table tbody tr:hover td{
+background:#374151;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- HEADER -->
+
+<nav class="navbar navbar-expand-lg">
+
+<div class="container">
+
+<a href="/dashboard">
+<img src="/static/tunisair.png" style="height:45px">
+</a>
+
+<ul class="navbar-nav ms-5">
+
+<li class="nav-item discover-menu">
+
+<a class="nav-link fw-bold">
+Discover
+</a>
+
+<div class="discover-panel">
+
+<div class="stat-item">
+
+<h6>Flights Today</h6>
+<p>{{ flights_today }}</p>
+
+</div>
+
+<div class="stat-item">
+
+<h6>Passengers Today</h6>
+<p>{{ passengers_today }}</p>
+
+</div>
+
+<div class="stat-item">
+
+<h6>Delayed Flights</h6>
+<p>{{ delayed_flights }}</p>
+
+</div>
+
+<div class="stat-item">
+
+<h6>Active Gates</h6>
+<p>{{ active_gates }}</p>
+
+</div>
+
+</div>
+
+</li>
+
+<li class="nav-item manage-menu">
+
+<a class="nav-link fw-bold">
+Manage Flights
+</a>
+
+<div class="manage-panel">
+
+<a href="/flights_dashboard" class="manage-item">
+<i class="fa fa-table"></i>
+Flight Dashboard
+</a>
+
+<a href="/flights" class="manage-item">
+<i class="fa fa-plane"></i>
+Manage Flights
+</a>
+
+<a href="/schedule" class="manage-item">
+<i class="fa fa-calendar"></i>
+Flight Schedule
+</a>
+
+<a href="/delays" class="manage-item">
+<i class="fa fa-clock"></i>
+Delay Management
+</a>
+
+<a href="/gates" class="manage-item">
+<i class="fa fa-map-marker-alt"></i>
+Gate Assignment
+</a>
+
+</div>
+
+</li>
+
+<li class="nav-item manage-menu">
+
+<a class="nav-link fw-bold">
+Operations
+</a>
+
+<div class="manage-panel">
+
+<a href="/passengers" class="manage-item">
+<i class="fa fa-users"></i>
+Passenger Management
+</a>
+
+<a href="/seats" class="manage-item">
+<i class="fa fa-chair"></i>
+Seat Assignment
+</a>
+
+<a href="/baggage" class="manage-item">
+<i class="fa fa-suitcase"></i>
+Baggage Tracking
+</a>
+
+<a href="/gates" class="manage-item">
+<i class="fa fa-map-marker-alt"></i>
+Gate Management
+</a>
+
+<a href="/flight-status" class="manage-item">
+<i class="fa fa-plane"></i>
+Flight Status
+</a>
+
+</div>
+
+</li>
+
+{% if is_admin %}
+<li class="nav-item manage-menu">
+
+<a class="nav-link fw-bold">
+Support
+</a>
+
+<div class="manage-panel">
+
+<a href="/logs" class="manage-item">
+<i class="fa fa-file-alt"></i>
+System Logs
+</a>
+
+<a href="/security" class="manage-item">
+<i class="fa fa-shield-alt"></i>
+Security Alerts
+</a>
+
+<a href="/upload" class="manage-item">
+<i class="fa fa-upload"></i>
+Upload Documents
+</a>
+
+{% if is_admin %}
+<a href="/users" class="manage-item">
+<i class="fa fa-user-cog"></i>
+User Management
+</a>
+{% endif %}
+
+<a href="/monitoring" class="manage-item">
+<i class="fa fa-chart-line"></i>
+System Monitoring
+</a>
+
+</div>
+
+</li>
+{% endif %}
+</ul>
+
+<div class="dashboard-tools">
+
+<div class="dashboard-search">
+
+<span class="input-group-text">
+<i class="fa fa-search"></i>
+</span>
+
+<div class="position-relative">
+
+<input
+type="text"
+id="searchInput"
+class="form-control"
+placeholder="Search page...">
+
+<div id="searchResults"
+class="list-group position-absolute w-100"
+style="z-index:1000"></div>
+
+</div>
+
+{% if admin_profile %}
+<div class="header-profile">
+<a href="/edit-profile" class="profile-access-link">
+<div class="text-end">
+<div class="fw-semibold">{{ admin_profile[0] }}</div>
+<div class="text-muted small text-uppercase">{{ admin_profile[1] }}</div>
+</div>
+</a>
+
+{% if admin_profile[2] %}
+<a href="/edit-profile" class="profile-access-link">
+<img src="/static/uploads/users/{{ admin_profile[2] }}" alt="Admin profile" class="header-avatar">
+</a>
+{% else %}
+<a href="/edit-profile" class="profile-access-link">
+<div class="header-fallback">A</div>
+</a>
+{% endif %}
+
+<details class="header-menu">
+<summary class="header-menu-trigger">
+<i class="fa-solid fa-ellipsis-vertical"></i>
+</summary>
+<div class="header-menu-panel">
+<a href="/edit-profile" class="header-menu-item">
+<i class="fa-solid fa-user-pen"></i>
+Edit Profile
+</a>
+<button type="button" class="header-menu-item darkModeToggle">
+<i class="fa-solid fa-moon"></i>
+Dark Mode
+</button>
+<a href="/logout" class="header-menu-item logout-link">
+<i class="fa-solid fa-right-from-bracket"></i>
+Log Off
+</a>
+</div>
+</details>
+</div>
+{% endif %}
+
+</div>
+
+</div>
+
+</div>
+
+</nav>
+
+<!-- HERO -->
+
+<div class="hero">
+
+<h1>Airline Operations Platform</h1>
+
+<p>Manage flights, passengers and operations</p>
+
+</div>
+
+<!-- SEARCH SECTION -->
+<form method="POST" action="/search-flights">
+
+<div class="container">
+
+<div class="search-box">
+
+<div class="row g-3 align-items-center">
+
+<div class="col-md-4">
+
+<div class="input-group">
+
+<span class="input-group-text">
+<i class="fa fa-plane-departure"></i>
+</span>
+
+<select class="form-control" placeholder="From (ex:Brazil)"  name="departure">
+{% for c in countries %}
+<option value="{{ c[0] }}">{{ c[0] }}</option>
+{% endfor %}
+</select>
+
+</div>
+</div>
+
+<div class="col-md-4">
+
+<div class="input-group">
+
+<span class="input-group-text">
+<i class="fa fa-plane-arrival"></i>
+</span>
+
+<select class="form-control" placeholder="To (ex: Tunis)" name="destination">
+
+{% for c in countries %}
+<option value="{{ c[0] }}">{{ c[0] }}</option>
+{% endfor %}
+</select>
+
+</div>
+</div>
+
+
+<div class="col-md-3">
+
+<button type="submit" class="btn btn-danger w-100">
+Search Flight
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</form>
+
+<!-- FLIGHT BOARD -->
+
+<div class="live-board-shell mt-5">
+<section class="live-board-panel">
+<div class="live-board-header">
+<div>
+<h3>Live Flight Board</h3>
+</div>
+<div class="live-board-badge">3 flights live</div>
+</div>
+
+<div class="live-board-body">
+<div class="live-board-table-wrap">
+<table class="live-board-table">
+<thead>
+<tr>
+<th>Flight</th>
+<th>Departure</th>
+<th>Destination</th>
+<th>Gate</th>
+<th>Time</th>
+<th>Status</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td class="board-flight">TU123</td>
+<td><span class="board-city"><img src="https://flagcdn.com/w20/tn.png" alt="Tunisia" class="board-flag">Tunis</span></td>
+<td><span class="board-city"><img src="https://flagcdn.com/w20/fr.png" alt="France" class="board-flag">Paris</span></td>
+<td><span class="board-gate">Gate A4</span></td>
+<td class="board-time">14:30</td>
+<td><span class="board-status on-time">On Time</span></td>
+</tr>
+
+<tr>
+<td class="board-flight">TU456</td>
+<td><span class="board-city"><img src="https://flagcdn.com/w20/tn.png" alt="Tunisia" class="board-flag">Tunis</span></td>
+<td><span class="board-city"><img src="https://flagcdn.com/w20/it.png" alt="Italy" class="board-flag">Rome</span></td>
+<td><span class="board-gate">Gate B1</span></td>
+<td class="board-time">15:10</td>
+<td><span class="board-status boarding">Boarding</span></td>
+</tr>
+
+<tr>
+<td class="board-flight">TU789</td>
+<td><span class="board-city"><img src="https://flagcdn.com/w20/tn.png" alt="Tunisia" class="board-flag">Tunis</span></td>
+<td><span class="board-city"><img src="https://flagcdn.com/w20/ae.png" alt="United Arab Emirates" class="board-flag">Dubai</span></td>
+<td><span class="board-gate">Gate C3</span></td>
+<td class="board-time">16:45</td>
+<td><span class="board-status delayed">Delayed</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</div>
+
+<!-- OPERATIONS -->
+
+<div class="container operations">
+
+<div class="row">
+
+{% if is_admin %}
+<div class="col-md-4">
+
+<div class="operation-card">
+
+<i class="fa fa-plane operation-icon"></i>
+
+<h4>Flights</h4>
+
+<p>Manage airline flights</p>
+
+<a href="/flights" class="btn btn-outline-danger">Open</a>
+
+</div>
+
+</div>
+
+<div class="col-md-4">
+
+<div class="operation-card">
+
+<i class="fa fa-users operation-icon"></i>
+
+<h4>Passengers</h4>
+
+<p>Manage passenger seats</p>
+
+<a href="/passengers" class="btn btn-outline-danger">Open</a>
+
+</div>
+
+</div>
+
+<div class="col-md-4">
+
+<div class="operation-card">
+
+<i class="fa fa-file operation-icon"></i>
+
+<h4>Documents</h4>
+
+<p>Upload airline files</p>
+
+<a href="/upload" class="btn btn-outline-danger">Open</a>
+
+</div>
+
+</div>
+{% endif %}
+
+</div>
+
+</div>
+
+<!-- FOOTER -->
+
+<div class="footer">
+
+<p>Airline Operations System</p>
+
+<p>Contact: operations@tunisair.com</p>
+
+<p>© 2026 Tunisair Operations Platform</p>
+
+</div>
+
+<script>
+
+const pages = [
+
+{ name:"Flight Dashboard", url:"/flights_dashboard" },
+{ name:"Manage Flights", url:"/flights" },
+{ name:"Flight Schedule", url:"/schedule" },
+{ name:"Delay Management", url:"/delays" },
+{ name:"Gate Assignment", url:"/gates" },
+
+{ name:"Passenger Management", url:"/passengers" },
+{ name:"Seat Assignment", url:"/seats" },
+{ name:"Baggage Tracking", url:"/baggage" },
+
+{ name:"Gate Management", url:"/gates" },
+{ name:"Flight Status", url:"/flight-status" },
+
+{% if is_admin %}
+{ name:"Security Alerts", url:"/security" },
+{ name:"Upload Documents", url:"/upload" },
+{ name:"User Management", url:"/users" },
+{ name:"System Monitoring", url:"/monitoring" },
+{ name:"System Logs", url:"/logs" }
+{% endif %}
+
+]
+
+const input = document.getElementById("searchInput")
+const results = document.getElementById("searchResults")
+
+function clearSearchResults() {
+results.innerHTML = ""
+}
+
+function renderSearchResults(query) {
+clearSearchResults()
+
+if (!query) {
+return
+}
+
+const filtered = pages.filter(page => {
+const pageName = page.name.toLowerCase()
+const words = pageName.split(/\s+/)
+return pageName.startsWith(query) || words.some(word => word.startsWith(query))
+})
+
+filtered.forEach(page => {
+const item = document.createElement("a")
+item.className = "list-group-item list-group-item-action"
+item.textContent = page.name
+item.href = page.url
+item.addEventListener("click", event => {
+event.preventDefault()
+window.location.href = page.url
+})
+results.appendChild(item)
+})
+}
+
+input.addEventListener("input", () => {
+renderSearchResults(input.value.trim().toLowerCase())
+})
+
+input.addEventListener("keydown", event => {
+if (event.key === "Enter") {
+const firstResult = results.querySelector("a")
+if (firstResult) {
+event.preventDefault()
+window.location.href = firstResult.href
+}
+}
+})
+
+document.addEventListener("click", event => {
+if (!input.contains(event.target) && !results.contains(event.target)) {
+clearSearchResults()
+}
+})
+
+const savedTheme = localStorage.getItem("theme")
+if(savedTheme === "dark"){
+document.body.classList.add("dark-mode")
+}
+
+document.querySelectorAll(".darkModeToggle").forEach(button => {
+button.addEventListener("click", () => {
+document.body.classList.toggle("dark-mode")
+localStorage.setItem("theme", document.body.classList.contains("dark-mode") ? "dark" : "light")
+})
+})
+
+</script>
+</body>
+</html>

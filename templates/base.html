@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Tunisair Operations Platform</title>
+
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+</head>
+
+<body>
+
+<!-- HEADER -->
+<nav class="navbar navbar-expand-lg bg-white shadow-sm">
+
+<div class="container">
+
+<a href="/dashboard">
+<img src="/static/tunisair.png" style="height:45px">
+</a>
+
+<ul class="navbar-nav ms-4">
+
+<li class="nav-item">
+<a href="/dashboard" class="nav-link">Dashboard</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link fw-bold active-page-link">{% block header_title %}Flight Management{% endblock %}</a>
+</li>
+
+</ul>
+
+<div class="ms-auto d-flex align-items-center gap-3">
+{% if admin_profile %}
+<a href="/edit-profile" class="profile-access-link">
+<div class="text-end">
+<div class="fw-semibold">{{ admin_profile[0] }}</div>
+<div class="text-muted small text-uppercase">{{ admin_profile[1] }}</div>
+</div>
+</a>
+
+{% if admin_profile[2] %}
+<a href="/edit-profile" class="profile-access-link">
+<img
+src="/static/uploads/users/{{ admin_profile[2] }}"
+alt="Admin profile"
+style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #dee2e6;">
+</a>
+{% else %}
+<a href="/edit-profile" class="profile-access-link">
+<div class="bg-danger text-white d-flex align-items-center justify-content-center"
+style="width:44px;height:44px;border-radius:50%;font-weight:700;">
+A
+</div>
+</a>
+{% endif %}
+
+<details class="header-menu">
+<summary class="header-menu-trigger">
+<i class="fa-solid fa-ellipsis-vertical"></i>
+</summary>
+
+<div class="header-menu-panel">
+<a href="/edit-profile" class="header-menu-item">
+<i class="fa-solid fa-user-pen"></i>
+Edit Profile
+</a>
+
+<button type="button" class="header-menu-item" id="darkModeToggle">
+<i class="fa-solid fa-moon"></i>
+Dark Mode
+</button>
+
+<a href="/logout" class="header-menu-item logout-link">
+<i class="fa-solid fa-right-from-bracket"></i>
+Log Off
+</a>
+</div>
+</details>
+{% endif %}
+</div>
+
+</div>
+
+</nav>
+
+{% block content %}{% endblock %}
+
+<!-- FOOTER -->
+
+<div class="footer mt-5 bg-dark text-white text-center p-4">
+
+<p>Airline Operations System</p>
+<p>Contact: operations@tunisair.com</p>
+<p>© 2026 Tunisair Operations Platform</p>
+
+</div>
+
+<style>
+body{
+font-family:Arial, Helvetica, sans-serif;
+background:#eef1f4;
+}
+
+.profile-access-link{
+text-decoration:none;
+color:inherit;
+display:flex;
+align-items:center;
+}
+
+.profile-access-link:hover{
+opacity:0.9;
+}
+
+body.dark-mode{
+background:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .navbar,
+body.dark-mode .footer{
+background:#1f2937 !important;
+color:#e5e7eb !important;
+}
+
+body.dark-mode .nav-link,
+body.dark-mode .text-muted{
+color:#cbd5e1 !important;
+}
+
+body.dark-mode table th{
+background:#000 !important;
+color:#cbd5e1 !important;
+border-color:#111827 !important;
+}
+
+body.dark-mode table td{
+background:#1f2937 !important;
+color:#e5e7eb !important;
+border-color:#111827 !important;
+}
+
+body.dark-mode table tbody tr:nth-child(even) td{
+background:#111827 !important;
+}
+
+body.dark-mode table tbody tr:hover td{
+background:#374151 !important;
+}
+
+.header-menu{
+position:relative;
+margin:0;
+}
+
+.active-page-link{
+position:relative;
+display:inline-flex;
+align-items:center;
+padding-bottom:12px !important;
+}
+
+.active-page-link::after{
+content:"";
+position:absolute;
+left:0;
+right:0;
+bottom:0;
+height:3px;
+border-radius:999px;
+background:#c1121f;
+}
+
+.header-menu summary{
+list-style:none;
+}
+
+.header-menu summary::-webkit-details-marker{
+display:none;
+}
+
+.header-menu-trigger{
+width:38px;
+height:38px;
+border:none;
+border-radius:50%;
+background:#f3f4f6;
+color:#374151;
+display:flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+}
+
+.header-menu-panel{
+position:absolute;
+top:46px;
+right:0;
+min-width:160px;
+background:white;
+border:1px solid #e5e7eb;
+border-radius:12px;
+box-shadow:0 12px 30px rgba(15,23,42,0.14);
+padding:8px;
+display:flex;
+flex-direction:column;
+gap:6px;
+z-index:1000;
+}
+
+.header-menu-item{
+width:100%;
+border:none;
+background:transparent;
+color:#1f2937;
+padding:10px 12px;
+border-radius:8px;
+display:flex;
+align-items:center;
+gap:10px;
+text-decoration:none;
+text-align:left;
+}
+
+.header-menu-item:hover{
+background:#f3f4f6;
+}
+
+.logout-link{
+color:#dc2626;
+}
+
+body.dark-mode .header-menu-trigger{
+background:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .header-menu-panel{
+background:#1f2937;
+border-color:#000;
+}
+
+body.dark-mode .header-menu-item{
+color:#e5e7eb;
+}
+
+body.dark-mode .header-menu-item:hover{
+background:#000;
+}
+
+body.dark-mode .logout-link{
+color:#fca5a5;
+}
+</style>
+
+<script>
+const darkModeToggle = document.getElementById("darkModeToggle")
+const savedTheme = localStorage.getItem("theme")
+
+if(savedTheme === "dark"){
+document.body.classList.add("dark-mode")
+}
+
+if(darkModeToggle){
+darkModeToggle.addEventListener("click", () => {
+document.body.classList.toggle("dark-mode")
+
+if(document.body.classList.contains("dark-mode")){
+localStorage.setItem("theme", "dark")
+}else{
+localStorage.setItem("theme", "light")
+}
+})
+}
+</script>
+
+</body>
+</html>

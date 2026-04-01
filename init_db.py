@@ -1,0 +1,73 @@
+import sqlite3
+
+conn = sqlite3.connect("database.db")
+c = conn.cursor()
+
+c.execute("""
+CREATE TABLE users(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+username TEXT,
+password TEXT,
+role TEXT,
+name TEXT,
+email TEXT,
+phone TEXT,
+staff_id TEXT,
+department TEXT,
+pfp TEXT
+)
+""")
+c.execute("""
+CREATE TABLE flights(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+flight_number TEXT,
+departure TEXT,
+destination TEXT,
+gate TEXT,
+time TEXT,
+status TEXT
+)
+""")
+
+c.execute("""
+CREATE TABLE passengers(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+name TEXT,
+passport TEXT,
+flight_id INTEGER,
+seat TEXT
+)
+""")
+
+c.execute("""
+CREATE TABLE baggage(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+tag TEXT,
+passenger_id INTEGER,
+flight_id INTEGER,
+weight INTEGER,
+extra_weight INTEGER,
+price INTEGER,
+status TEXT,
+location TEXT
+)
+""")
+
+import sqlite3
+
+
+c.execute("""
+CREATE TABLE IF NOT EXISTS security_alerts (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+alert TEXT,
+time TEXT
+)
+""")
+
+c.execute("INSERT INTO users VALUES(NULL,'admin','admin123','admin','')")
+c.execute("INSERT INTO flights VALUES(NULL,'TU123','Tunis','Paris','A2','10.26','ON TIME')")
+
+conn.commit()
+conn.close()
+
+print("Database created")

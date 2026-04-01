@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+
+{% block header_title %}System Logs{% endblock %}
+
+{% block content %}
+
+<style>
+.logs-shell{
+max-width:1280px;
+margin:0 auto;
+padding:40px 24px 24px;
+}
+
+.logs-topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:20px;
+padding:22px 24px;
+background:#fff;
+border:1px solid rgba(216,224,235,0.85);
+border-radius:22px;
+box-shadow:0 14px 34px rgba(15, 23, 42, 0.05);
+flex-wrap:wrap;
+margin-bottom:24px;
+}
+
+.logs-kicker{
+font-size:0.82rem;
+color:#6b7280;
+margin-bottom:6px;
+letter-spacing:0.14em;
+text-transform:uppercase;
+}
+
+.logs-topbar h1{
+margin:0;
+font-size:2rem;
+line-height:1.1;
+font-weight:700;
+color:#1f2937;
+}
+
+.logs-topbar p{
+margin:10px 0 0;
+color:#6b7280;
+max-width:720px;
+}
+
+.logs-chip{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 14px;
+background:linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+border:1px solid rgba(216,224,235,0.9);
+border-radius:20px;
+min-width:220px;
+}
+
+.logs-chip-icon{
+width:42px;
+height:42px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#1f1f1f;
+color:#fff;
+font-size:1rem;
+}
+
+.logs-chip small{
+display:block;
+color:#6b7280;
+text-transform:uppercase;
+letter-spacing:0.08em;
+font-size:0.72rem;
+}
+
+.metrics{
+display:grid;
+grid-template-columns:repeat(3, minmax(0, 1fr));
+gap:18px;
+align-items:stretch;
+margin-bottom:22px;
+}
+
+.metric-card{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.82);
+border-radius:24px;
+padding:20px 22px;
+box-shadow:0 16px 36px rgba(15, 23, 42, 0.05);
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+position:relative;
+overflow:hidden;
+}
+
+.metric-card::after{
+content:"";
+position:absolute;
+left:0;
+right:0;
+bottom:0;
+height:4px;
+}
+
+.metric-card.blue::after{
+background:linear-gradient(90deg, #93c5fd, #2563eb);
+}
+
+.metric-card.red::after{
+background:linear-gradient(90deg, #fca5a5, #dc2626);
+}
+
+.metric-card.green::after{
+background:linear-gradient(90deg, #86efac, #15803d);
+}
+
+.metric-top{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:14px;
+margin-bottom:14px;
+}
+
+.metric-label{
+font-size:0.9rem;
+font-weight:700;
+color:#6b7280;
+margin-bottom:8px;
+}
+
+.metric-value{
+font-size:1.9rem;
+font-weight:700;
+line-height:1;
+color:#111827;
+}
+
+.metric-icon{
+width:48px;
+height:48px;
+border-radius:16px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:1.1rem;
+}
+
+.metric-card.blue .metric-icon{
+background:#dbeafe;
+color:#2563eb;
+}
+
+.metric-card.red .metric-icon{
+background:#fee2e2;
+color:#dc2626;
+}
+
+.metric-card.green .metric-icon{
+background:#dcfce7;
+color:#15803d;
+}
+
+.metric-note{
+font-size:0.88rem;
+color:#6b7280;
+}
+
+.logs-panel{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15, 23, 42, 0.06);
+overflow:hidden;
+}
+
+.logs-panel-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 18px;
+border-bottom:1px solid rgba(216,224,235,0.55);
+}
+
+.logs-panel-header h2{
+margin:0;
+font-size:1.2rem;
+font-weight:700;
+color:#1f2937;
+}
+
+.logs-panel-header p{
+margin:8px 0 0;
+color:#6b7280;
+}
+
+.logs-badge{
+padding:8px 12px;
+border-radius:999px;
+background:#f7f8fb;
+color:#6b7280;
+font-size:0.82rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.logs-panel-body{
+padding:12px 24px 24px;
+}
+
+.logs-table-wrap{
+overflow:auto;
+max-height:560px;
+}
+
+.logs-table{
+width:100%;
+border-collapse:collapse;
+min-width:720px;
+}
+
+.logs-table th,
+.logs-table td{
+padding:12px 14px;
+text-align:left;
+border-bottom:1px solid rgba(216,224,235,0.8);
+vertical-align:middle;
+}
+
+.logs-table th{
+font-size:0.82rem;
+text-transform:uppercase;
+letter-spacing:0.08em;
+color:#6b7280;
+background:#fafbfc;
+}
+
+.logs-table tbody tr:hover{
+background:#fafbfd;
+}
+
+.logs-table tr:last-child td{
+border-bottom:none;
+}
+
+.log-index{
+font-weight:700;
+color:#111827;
+}
+
+.log-entry{
+display:flex;
+align-items:flex-start;
+gap:10px;
+color:#334155;
+}
+
+.log-entry i{
+margin-top:3px;
+color:#6b7280;
+}
+
+body.dark-mode .logs-topbar,
+body.dark-mode .metric-card,
+body.dark-mode .logs-panel{
+background:#1f2937;
+border-color:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .logs-topbar h1,
+body.dark-mode .metric-value,
+body.dark-mode .logs-panel-header h2,
+body.dark-mode .log-index{
+color:#e5e7eb;
+}
+
+body.dark-mode .logs-kicker,
+body.dark-mode .logs-topbar p,
+body.dark-mode .logs-chip small,
+body.dark-mode .metric-label,
+body.dark-mode .metric-note,
+body.dark-mode .logs-panel-header p,
+body.dark-mode .logs-badge,
+body.dark-mode .logs-table th,
+body.dark-mode .log-entry,
+body.dark-mode .log-entry i{
+color:#cbd5e1;
+}
+
+body.dark-mode .logs-chip,
+body.dark-mode .logs-badge,
+body.dark-mode .logs-table th,
+body.dark-mode .logs-table tbody tr:hover{
+background:#000;
+border-color:#1f2937;
+}
+
+body.dark-mode .logs-chip-icon{
+background:#000;
+}
+
+body.dark-mode .logs-panel-header,
+body.dark-mode .logs-table td,
+body.dark-mode .logs-table th{
+border-color:#1f2937;
+}
+
+@media (max-width: 900px){
+.metrics{
+grid-template-columns:1fr;
+}
+}
+
+@media (max-width: 768px){
+.logs-shell{
+padding:30px 18px 18px;
+}
+
+.logs-topbar{
+padding:20px 18px;
+}
+
+.logs-panel-header,
+.logs-panel-body{
+padding-left:18px;
+padding-right:18px;
+}
+
+.logs-chip{
+width:100%;
+}
+}
+</style>
+
+<div class="logs-shell">
+<div class="logs-topbar">
+<div style="min-width:0; flex:1 1 320px;">
+<div class="logs-kicker">Support / <strong style="color:#d90429;">System Logs</strong></div>
+<h1>System Logs</h1>
+<p>Inspect platform events, warnings, and recorded system activity from one consolidated operational view.</p>
+</div>
+
+<div class="logs-chip">
+<div>
+<strong>{{ logs|length }} captured entries</strong>
+<small>System activity stream</small>
+</div>
+<div class="logs-chip-icon">
+<i class="fa-solid fa-file-lines"></i>
+</div>
+</div>
+</div>
+
+<section class="metrics">
+<article class="metric-card blue">
+<div class="metric-top">
+<div>
+<div class="metric-label">Total Logs</div>
+<div class="metric-value">{{ logs|length }}</div>
+</div>
+<div class="metric-icon"><i class="fa-solid fa-file-alt"></i></div>
+</div>
+<div class="metric-note">Complete number of log entries currently available in the system log file.</div>
+</article>
+
+<article class="metric-card red">
+<div class="metric-top">
+<div>
+<div class="metric-label">Warnings</div>
+<div class="metric-value">{{ logs|length }}</div>
+</div>
+<div class="metric-icon"><i class="fa-solid fa-exclamation-circle"></i></div>
+</div>
+<div class="metric-note">Potential issues flagged in the current monitoring log snapshot.</div>
+</article>
+
+<article class="metric-card green">
+<div class="metric-top">
+<div>
+<div class="metric-label">System Events</div>
+<div class="metric-value">{{ logs|length }}</div>
+</div>
+<div class="metric-icon"><i class="fa-solid fa-circle-info"></i></div>
+</div>
+<div class="metric-note">Recorded operational events available for review in the live log viewer.</div>
+</article>
+</section>
+
+<section class="logs-panel">
+<div class="logs-panel-header">
+<div>
+<h2>Log Viewer</h2>
+<p>Chronological view of system activity and operational messages.</p>
+</div>
+<div class="logs-badge">{{ logs|length }} rows</div>
+</div>
+
+<div class="logs-panel-body">
+<div class="logs-table-wrap">
+<table class="logs-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Event</th>
+</tr>
+</thead>
+
+<tbody>
+{% for log in logs %}
+<tr>
+<td class="log-index">{{ loop.index }}</td>
+<td>
+<div class="log-entry">
+<i class="fa fa-terminal"></i>
+<span>{{ log }}</span>
+</div>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</div>
+
+{% endblock %}

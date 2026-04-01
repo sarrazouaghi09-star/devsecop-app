@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flights Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+--bg:#f4f6f9;
+--panel:#ffffff;
+--panel-alt:#f7f8fb;
+--panel-tint:#fcfcfd;
+--line:#d8e0eb;
+--text:#1f2937;
+--muted:#6b7280;
+--accent:#d90429;
+--accent-soft:#fde2e7;
+--danger:#dc2626;
+--danger-soft:#fee2e2;
+--warning:#d97706;
+--warning-soft:#fef3c7;
+--info:#1d4ed8;
+--info-soft:#dbeafe;
+--dark:#1f1f1f;
+--shadow:0 24px 60px rgba(15, 23, 42, 0.08);
+}
+
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+font-family:Arial, Helvetica, sans-serif;
+background:var(--bg);
+color:var(--text);
+line-height:1.45;
+}
+
+body.dark-mode{
+background:#000;
+color:#e5e7eb;
+--panel:#1f2937;
+--panel-alt:#000;
+--panel-tint:#1f2937;
+--line:#111827;
+--text:#e5e7eb;
+--muted:#cbd5e1;
+--accent-soft:#3f1d24;
+--danger-soft:#3b1212;
+--warning-soft:#3a2a12;
+--info-soft:#14243f;
+}
+
+.dashboard-shell{
+display:block;
+min-height:100vh;
+}
+
+body.dark-mode .page-header,
+body.dark-mode .topbar,
+body.dark-mode .admin-chip,
+body.dark-mode .metric-card,
+body.dark-mode .panel,
+body.dark-mode .route-map-shell{
+background:#1f2937 !important;
+border-color:#000 !important;
+color:#e5e7eb;
+}
+
+body.dark-mode .header-nav-link,
+body.dark-mode .topbar h1,
+body.dark-mode .panel-header h2,
+body.dark-mode .metric-value,
+body.dark-mode .list-row strong,
+body.dark-mode .data-table td,
+body.dark-mode .country-table td{
+color:#e5e7eb;
+}
+
+body.dark-mode .page-kicker,
+body.dark-mode .topbar p,
+body.dark-mode .admin-chip small,
+body.dark-mode .panel-header p,
+body.dark-mode .panel-badge,
+body.dark-mode .data-table th,
+body.dark-mode .country-table th,
+body.dark-mode .country-subtitle,
+body.dark-mode .list-row small,
+body.dark-mode .route-legend span{
+color:#cbd5e1 !important;
+}
+
+body.dark-mode .header-menu-trigger,
+body.dark-mode .panel-badge,
+body.dark-mode .data-table th,
+body.dark-mode .data-table tbody tr:hover,
+body.dark-mode .country-table th,
+body.dark-mode .country-table tbody tr:hover,
+body.dark-mode .list-row,
+body.dark-mode .period-toggle,
+body.dark-mode .period-toggle button:not(.active){
+background:#000 !important;
+border-color:#1f2937 !important;
+color:#e5e7eb;
+}
+
+body.dark-mode .header-menu-panel{
+background:#1f2937;
+border-color:#000;
+}
+
+body.dark-mode .admin-chip .fallback,
+body.dark-mode .header-fallback,
+body.dark-mode .country-flag-fallback{
+background:#000 !important;
+color:#e5e7eb !important;
+}
+
+body.dark-mode .list-pill{
+background:#1f2937 !important;
+color:#e5e7eb !important;
+border:1px solid #000;
+}
+
+body.dark-mode .header-menu-item{
+color:#e5e7eb;
+}
+
+body.dark-mode .header-menu-item:hover{
+background:#000;
+}
+
+body.dark-mode .data-table td,
+body.dark-mode .data-table th,
+body.dark-mode .country-table td,
+body.dark-mode .country-table th,
+body.dark-mode .panel-header,
+body.dark-mode .list-row{
+border-color:#1f2937 !important;
+}
+
+body.dark-mode .period-toggle button.active{
+background:#1f2937 !important;
+color:#e5e7eb !important;
+box-shadow:none;
+border:1px solid #000;
+}
+
+.main{
+padding:0 24px 32px;
+display:flex;
+flex-direction:column;
+gap:22px;
+min-width:0;
+}
+
+.page-wrap{
+width:100%;
+max-width:1280px;
+margin:0 auto;
+}
+
+.page-header{
+background:white;
+box-shadow:0 2px 10px rgba(0,0,0,0.08);
+margin-bottom:24px;
+border-bottom:1px solid rgba(216,224,235,0.85);
+}
+
+.page-header .container{
+display:flex;
+align-items:center;
+gap:18px;
+padding:14px 24px;
+}
+
+.page-header img{
+height:45px;
+}
+
+.header-nav-link{
+color:#1f2937;
+text-decoration:none;
+padding:8px 0;
+}
+
+.header-nav-link.active{
+font-weight:700;
+position:relative;
+}
+
+.header-nav-link.active::after{
+content:"";
+position:absolute;
+left:0;
+right:0;
+bottom:-14px;
+height:3px;
+border-radius:999px;
+background:#d90429;
+}
+
+.header-profile{
+margin-left:auto;
+display:flex;
+align-items:center;
+gap:12px;
+}
+
+.header-avatar,
+.header-fallback{
+width:44px;
+height:44px;
+border-radius:50%;
+object-fit:cover;
+}
+
+.header-avatar{
+border:2px solid #dee2e6;
+}
+
+.header-fallback{
+display:flex;
+align-items:center;
+justify-content:center;
+background:#dc3545;
+color:#fff;
+font-weight:700;
+}
+
+.profile-access-link{
+text-decoration:none;
+color:inherit;
+display:flex;
+align-items:center;
+}
+
+.profile-access-link:hover{
+opacity:0.9;
+}
+
+.header-menu{
+position:relative;
+margin:0;
+}
+
+.header-menu summary{
+list-style:none;
+}
+
+.header-menu summary::-webkit-details-marker{
+display:none;
+}
+
+.header-menu-trigger{
+width:38px;
+height:38px;
+border:none;
+border-radius:50%;
+background:#f3f4f6;
+color:#374151;
+display:flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+}
+
+.header-menu-panel{
+position:absolute;
+top:46px;
+right:0;
+min-width:160px;
+background:white;
+border:1px solid #e5e7eb;
+border-radius:12px;
+box-shadow:0 12px 30px rgba(15,23,42,0.14);
+padding:8px;
+display:flex;
+flex-direction:column;
+gap:6px;
+z-index:1000;
+}
+
+.header-menu-item{
+width:100%;
+border:none;
+background:transparent;
+color:#1f2937;
+padding:10px 12px;
+border-radius:8px;
+display:flex;
+align-items:center;
+gap:10px;
+text-decoration:none;
+text-align:left;
+}
+
+.header-menu-item:hover{
+background:#f3f4f6;
+}
+
+.logout-link{
+color:#dc2626;
+}
+
+.topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:20px;
+padding:22px 24px;
+background:#fff;
+border:1px solid rgba(216,224,235,0.85);
+border-radius:22px;
+box-shadow:0 14px 34px rgba(15, 23, 42, 0.05);
+flex-wrap:wrap;
+margin-bottom:30px;
+}
+
+.page-kicker{
+font-size:0.82rem;
+color:var(--muted);
+margin-bottom:6px;
+letter-spacing:0.14em;
+text-transform:uppercase;
+}
+
+.topbar h1{
+margin:0;
+font-size:2rem;
+line-height:1.1;
+}
+
+.topbar p{
+margin:10px 0 0;
+color:var(--muted);
+max-width:680px;
+}
+
+.topbar-tools{
+display:flex;
+align-items:center;
+gap:14px;
+flex-wrap:wrap;
+justify-content:flex-end;
+margin-left:auto;
+}
+
+.admin-chip{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 14px;
+background:linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+border:1px solid rgba(216,224,235,0.9);
+border-radius:20px;
+box-shadow:none;
+flex:0 0 auto;
+min-width:190px;
+}
+
+.admin-chip img,
+.admin-chip .fallback{
+width:42px;
+height:42px;
+border-radius:50%;
+object-fit:cover;
+}
+
+.admin-chip .fallback{
+display:flex;
+align-items:center;
+justify-content:center;
+background:var(--dark);
+color:#fff;
+font-weight:700;
+}
+
+.admin-chip small{
+display:block;
+color:var(--muted);
+text-transform:uppercase;
+letter-spacing:0.08em;
+font-size:0.72rem;
+}
+
+.metrics{
+display:grid;
+grid-template-columns:repeat(4, minmax(0, 1fr));
+gap:18px;
+align-items:stretch;
+margin-top:10px;
+margin-bottom:14px;
+}
+
+.metric-card{
+background:linear-gradient(180deg, var(--panel) 0%, var(--panel-tint) 100%);
+border:1px solid rgba(216,224,235,0.82);
+border-radius:24px;
+padding:20px 22px;
+box-shadow:0 16px 36px rgba(15, 23, 42, 0.05);
+min-width:0;
+min-height:160px;
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+position:relative;
+overflow:hidden;
+}
+
+.metric-card::after{
+content:"";
+position:absolute;
+inset:auto 0 0 0;
+height:4px;
+opacity:0.95;
+}
+
+.metric-top{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:14px;
+margin-bottom:16px;
+}
+
+.metric-icon{
+width:48px;
+height:48px;
+border-radius:16px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:1.15rem;
+flex:0 0 auto;
+}
+
+.metric-label{
+font-size:0.84rem;
+color:var(--muted);
+text-transform:uppercase;
+letter-spacing:0.08em;
+margin-bottom:8px;
+}
+
+.metric-value{
+font-size:1.9rem;
+font-weight:700;
+line-height:1;
+}
+
+.metric-note{
+margin-top:10px;
+font-size:0.88rem;
+color:var(--muted);
+line-height:1.5;
+}
+
+.metric-card.teal .metric-icon{
+background:var(--accent-soft);
+color:var(--accent);
+}
+
+.metric-card.teal::after{
+background:linear-gradient(90deg, #fb7185, #d90429);
+}
+
+.metric-card.blue .metric-icon{
+background:var(--info-soft);
+color:var(--info);
+}
+
+.metric-card.blue::after{
+background:linear-gradient(90deg, #93c5fd, #2563eb);
+}
+
+.metric-card.amber .metric-icon{
+background:var(--warning-soft);
+color:var(--warning);
+}
+
+.metric-card.amber::after{
+background:linear-gradient(90deg, #fbbf24, #d97706);
+}
+
+.metric-card.red .metric-icon{
+background:var(--danger-soft);
+color:var(--danger);
+}
+
+.metric-card.red::after{
+background:linear-gradient(90deg, #fca5a5, #dc2626);
+}
+
+.content-grid{
+display:grid;
+grid-template-columns:minmax(0, 1.2fr) minmax(0, 0.8fr);
+gap:22px;
+align-items:start;
+margin-top:8px;
+}
+
+.content-grid > div{
+min-width:0;
+}
+
+.panel{
+background:linear-gradient(180deg, var(--panel) 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15, 23, 42, 0.06);
+min-width:0;
+overflow:hidden;
+width:100%;
+}
+
+.panel-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 0;
+border-bottom:1px solid rgba(216,224,235,0.55);
+padding-bottom:18px;
+}
+
+.panel-header h2{
+margin:0;
+font-size:1.2rem;
+}
+
+.panel-header p{
+margin:8px 0 0;
+color:var(--muted);
+}
+
+.panel-badge{
+padding:8px 12px;
+border-radius:999px;
+background:var(--panel-alt);
+color:var(--muted);
+font-size:0.82rem;
+font-weight:700;
+}
+
+.panel-body{
+padding:24px;
+}
+
+.chart-card{
+padding:8px 0 0;
+min-width:0;
+}
+
+.route-map-shell{
+border:1px solid rgba(216,224,235,0.82);
+background:linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
+border-radius:24px;
+padding:14px;
+position:relative;
+}
+
+.route-map-canvas{
+width:100%;
+height:360px;
+border-radius:18px;
+overflow:hidden;
+border:1px solid rgba(216,224,235,0.82);
+}
+
+.route-legend{
+display:flex;
+flex-wrap:wrap;
+gap:12px;
+margin-top:14px;
+justify-content:center;
+}
+
+.route-legend span{
+display:inline-flex;
+align-items:center;
+gap:8px;
+font-size:0.82rem;
+color:var(--muted);
+}
+
+.route-legend i{
+font-size:0.7rem;
+}
+
+.city-marker{
+width:14px;
+height:14px;
+border-radius:50%;
+background:#d90429;
+border:3px solid #fff;
+box-shadow:0 0 0 4px rgba(217,4,41,0.18);
+}
+
+.list-panel{
+display:flex;
+flex-direction:column;
+gap:14px;
+}
+
+.country-toolbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:16px;
+flex-wrap:wrap;
+}
+
+.period-toggle{
+display:inline-flex;
+align-items:center;
+gap:6px;
+padding:4px;
+border:1px solid rgba(216,224,235,0.9);
+border-radius:999px;
+background:#f8fafc;
+}
+
+.period-toggle button{
+border:none;
+background:transparent;
+padding:9px 14px;
+border-radius:999px;
+font:inherit;
+font-size:0.84rem;
+font-weight:700;
+color:var(--muted);
+cursor:pointer;
+}
+
+.period-toggle button.active{
+background:#fff;
+color:var(--text);
+box-shadow:0 6px 16px rgba(15,23,42,0.08);
+}
+
+.country-table{
+width:100%;
+border-collapse:collapse;
+min-width:0;
+table-layout:auto;
+}
+
+.country-table th,
+.country-table td{
+padding:12px 10px;
+border-bottom:1px solid rgba(216,224,235,0.8);
+text-align:left;
+vertical-align:middle;
+}
+
+.country-table th{
+font-size:0.76rem;
+text-transform:uppercase;
+letter-spacing:0.08em;
+color:var(--muted);
+background:#fafbfc;
+white-space:nowrap;
+}
+
+.country-table tr:last-child td{
+border-bottom:none;
+}
+
+.country-id{
+width:40px;
+color:var(--muted);
+font-weight:700;
+text-align:center;
+}
+
+.country-cell{
+display:flex;
+align-items:center;
+gap:10px;
+min-width:0;
+}
+
+.country-flag{
+width:22px;
+height:22px;
+border-radius:50%;
+object-fit:cover;
+flex:0 0 auto;
+border:1px solid rgba(216,224,235,0.9);
+background:#fff;
+}
+
+.country-flag-fallback{
+width:22px;
+height:22px;
+border-radius:50%;
+display:inline-flex;
+align-items:center;
+justify-content:center;
+font-size:0.7rem;
+background:#eef2f7;
+color:var(--muted);
+flex:0 0 auto;
+}
+
+.country-subtitle{
+display:block;
+font-size:0.82rem;
+color:var(--muted);
+margin-top:3px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+
+.growth-chip{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:7px 10px;
+border-radius:999px;
+font-size:0.82rem;
+font-weight:700;
+}
+
+.growth-chip.up{
+background:#dcfce7;
+color:#15803d;
+}
+
+.growth-chip.down{
+background:#fee2e2;
+color:#b91c1c;
+}
+
+.growth-chip.flat{
+background:#e5e7eb;
+color:#4b5563;
+}
+
+.country-count{
+font-weight:700;
+}
+
+.country-table tbody tr{
+transition:background 0.2s ease;
+}
+
+.country-table tbody tr:hover{
+background:#fafbfd;
+}
+
+.country-table th:nth-child(1),
+.country-table td:nth-child(1){
+width:48px;
+}
+
+.country-table th:nth-child(3),
+.country-table td:nth-child(3),
+.country-table th:nth-child(5),
+.country-table td:nth-child(5),
+.country-table th:nth-child(6),
+.country-table td:nth-child(6){
+text-align:center;
+}
+
+.country-table th:nth-child(3),
+.country-table td:nth-child(3){
+width:92px;
+}
+
+.country-table th:nth-child(4),
+.country-table td:nth-child(4){
+width:118px;
+}
+
+.country-table th:nth-child(5),
+.country-table td:nth-child(5),
+.country-table th:nth-child(6),
+.country-table td:nth-child(6){
+width:84px;
+white-space:nowrap;
+}
+
+.list-row{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:16px;
+padding:14px 16px;
+border-radius:18px;
+background:#f8fafc;
+border:1px solid rgba(216,224,235,0.72);
+min-width:0;
+flex-wrap:wrap;
+}
+
+.list-row strong{
+display:block;
+margin-bottom:4px;
+}
+
+.list-row small{
+color:var(--muted);
+}
+
+.list-pill{
+padding:7px 12px;
+border-radius:999px;
+font-weight:700;
+font-size:0.82rem;
+background:#e8eef7;
+flex:0 0 auto;
+}
+
+.table-panel{
+margin-top:22px;
+}
+
+.table-wrap{
+overflow-x:auto;
+max-width:100%;
+}
+
+.data-table{
+width:100%;
+border-collapse:collapse;
+min-width:760px;
+}
+
+.upcoming-table-wrap{
+overflow-x:visible;
+overflow-y:auto;
+max-height:360px;
+}
+
+.upcoming-table{
+min-width:0;
+table-layout:fixed;
+}
+
+.upcoming-table th:nth-child(1),
+.upcoming-table td:nth-child(1){
+width:14%;
+}
+
+.upcoming-table th:nth-child(2),
+.upcoming-table td:nth-child(2){
+width:34%;
+word-break:break-word;
+}
+
+.upcoming-table th:nth-child(3),
+.upcoming-table td:nth-child(3){
+width:12%;
+}
+
+.upcoming-table th:nth-child(4),
+.upcoming-table td:nth-child(4){
+width:18%;
+}
+
+.upcoming-table th:nth-child(5),
+.upcoming-table td:nth-child(5){
+width:22%;
+}
+
+.data-table th,
+.data-table td{
+padding:16px 18px;
+text-align:left;
+border-bottom:1px solid rgba(216,224,235,0.8);
+vertical-align:middle;
+}
+
+.data-table th{
+font-size:0.82rem;
+text-transform:uppercase;
+letter-spacing:0.08em;
+color:var(--muted);
+background:#fafbfc;
+}
+
+.data-table tbody tr{
+transition:background 0.2s ease;
+}
+
+.data-table tbody tr:hover{
+background:#fafbfd;
+}
+
+.data-table tr:last-child td{
+border-bottom:none;
+}
+
+.status-tag{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:8px 12px;
+border-radius:999px;
+font-size:0.82rem;
+font-weight:700;
+}
+
+.status-tag.on-time{ background:#dcfce7; color:#15803d; }
+.status-tag.boarding{ background:var(--info-soft); color:var(--info); }
+.status-tag.delayed{ background:var(--warning-soft); color:var(--warning); }
+.status-tag.cancelled{ background:var(--danger-soft); color:var(--danger); }
+
+.dashboard-footer{
+background:#1f1f1f;
+color:#fff;
+padding:25px;
+text-align:center;
+margin-top:26px;
+width:100vw;
+margin-left:calc(50% - 50vw);
+}
+
+@media (max-width: 1200px){
+.metrics{
+grid-template-columns:repeat(2, minmax(240px, 1fr));
+}
+
+.content-grid{
+grid-template-columns:1fr;
+}
+}
+
+@media (max-width: 960px){
+.main{
+padding:0 18px 24px;
+}
+
+.page-header .container{
+padding:14px 18px;
+flex-wrap:wrap;
+}
+
+.topbar{
+flex-direction:column;
+align-items:flex-start;
+}
+
+.topbar-tools{
+width:100%;
+justify-content:flex-start;
+margin-left:0;
+}
+
+.admin-chip{
+width:100%;
+justify-content:space-between;
+}
+
+.metrics{
+grid-template-columns:1fr;
+}
+}
+</style>
+</head>
+<body>
+<div class="dashboard-shell">
+<nav class="page-header">
+<div class="container page-wrap">
+<a href="/dashboard">
+<img src="/static/tunisair.png" alt="Tunisair">
+</a>
+
+<a href="/dashboard" class="header-nav-link">Dashboard</a>
+<a class="header-nav-link active">Flights Dashboard</a>
+
+{% if admin_profile %}
+<div class="header-profile">
+<a href="/edit-profile" class="profile-access-link">
+<div class="text-end">
+<div class="fw-semibold">{{ admin_profile[0] }}</div>
+<div class="text-muted small text-uppercase">{{ admin_profile[1] }}</div>
+</div>
+</a>
+
+{% if admin_profile[2] %}
+<a href="/edit-profile" class="profile-access-link">
+<img src="/static/uploads/users/{{ admin_profile[2] }}" alt="Admin profile" class="header-avatar">
+</a>
+{% else %}
+<a href="/edit-profile" class="profile-access-link">
+<div class="header-fallback">A</div>
+</a>
+{% endif %}
+
+<details class="header-menu">
+<summary class="header-menu-trigger">
+<i class="fa-solid fa-ellipsis-vertical"></i>
+</summary>
+<div class="header-menu-panel">
+<button type="button" class="header-menu-item" id="darkModeToggle">
+<i class="fa-solid fa-moon"></i>
+Dark Mode
+</button>
+<a href="/logout" class="header-menu-item logout-link">
+<i class="fa-solid fa-right-from-bracket"></i>
+Log Off
+</a>
+</div>
+</details>
+</div>
+{% endif %}
+</div>
+</nav>
+
+<main class="main">
+<div class="page-wrap">
+<div class="topbar">
+<div style="min-width:0; flex:1 1 320px;">
+<div class="page-kicker">Dashboard / <strong style="color:#d90429;">Flights Dashboard</strong></div>
+<h1>Flights Dashboard</h1>
+<p>Admin overview for schedule health, gate pressure, and live route activity.</p>
+</div>
+
+<div class="topbar-tools">
+<div class="admin-chip">
+<div>
+<strong>Operations Snapshot</strong>
+<small>{{ active_gates }} active gates</small>
+</div>
+<div class="fallback"><i class="fa-solid fa-tower-broadcast"></i></div>
+</div>
+</div>
+</div>
+
+<section class="metrics">
+<article class="metric-card teal">
+<div class="metric-top">
+<div>
+<div class="metric-label">Total Flights</div>
+<div class="metric-value">{{ total_flights }}</div>
+</div>
+<div class="metric-icon"><i class="fa-solid fa-plane"></i></div>
+</div>
+<div class="metric-note">All flights currently stored in operations.</div>
+</article>
+
+<article class="metric-card blue">
+<div class="metric-top">
+<div>
+<div class="metric-label">On Time</div>
+<div class="metric-value">{{ on_time }}</div>
+</div>
+<div class="metric-icon"><i class="fa-solid fa-circle-check"></i></div>
+</div>
+<div class="metric-note">Flights currently moving according to schedule.</div>
+</article>
+
+<article class="metric-card amber">
+<div class="metric-top">
+<div>
+<div class="metric-label">Delayed</div>
+<div class="metric-value">{{ delayed }}</div>
+</div>
+<div class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+</div>
+<div class="metric-note">Flights needing attention from control teams.</div>
+</article>
+
+<article class="metric-card red">
+<div class="metric-top">
+<div>
+<div class="metric-label">Active Gates</div>
+<div class="metric-value">{{ active_gates }}</div>
+</div>
+<div class="metric-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+</div>
+<div class="metric-note">{{ cancelled }} cancelled and {{ boarding }} boarding right now.</div>
+</article>
+</section>
+
+<section class="content-grid">
+<div>
+<article class="panel">
+<div class="panel-header">
+<div>
+<h2>Flight Routes Map</h2>
+<p>Live overview of current flight connections across your network.</p>
+</div>
+<div class="panel-badge">{{ route_map_lines|length }} live routes</div>
+</div>
+<div class="panel-body chart-card">
+<div class="map-area">
+<div class="route-map-shell">
+<div id="flightRoutesMap" class="route-map-canvas"></div>
+
+<div class="route-legend">
+<span><i class="fa-solid fa-circle" style="color:#15803d"></i> On Time</span>
+<span><i class="fa-solid fa-circle" style="color:#2563eb"></i> Boarding</span>
+<span><i class="fa-solid fa-circle" style="color:#d97706"></i> Delayed</span>
+<span><i class="fa-solid fa-circle" style="color:#dc2626"></i> Cancelled</span>
+</div>
+</div>
+</div>
+</div>
+</article>
+
+<article class="panel table-panel">
+<div class="panel-header">
+<div>
+<h2>Upcoming Flights</h2>
+<p>Nearest departures in chronological order.</p>
+</div>
+<div class="panel-badge">{{ upcoming_flights|length }} monitored</div>
+</div>
+<div class="panel-body" style="padding-top: 12px;">
+<div class="table-wrap upcoming-table-wrap">
+<table class="data-table upcoming-table">
+<thead>
+<tr>
+<th>Flight</th>
+<th>Route</th>
+<th>Gate</th>
+<th>Time</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+{% for flight in upcoming_flights %}
+<tr>
+<td><strong>{{ flight.flight_number }}</strong></td>
+<td>{{ flight.departure }} -> {{ flight.destination }}</td>
+<td>{{ flight.gate }}</td>
+<td>{{ flight.time }}</td>
+<td>
+<span class="status-tag {% if flight.status == 'On Time' %}on-time{% elif flight.status == 'Boarding' %}boarding{% elif flight.status == 'Delayed' %}delayed{% else %}cancelled{% endif %}">
+{{ flight.status }}
+</span>
+</td>
+</tr>
+{% endfor %}
+{% if upcoming_flights|length == 0 %}
+<tr>
+<td colspan="5" style="color: var(--muted);">No upcoming flights available.</td>
+</tr>
+{% endif %}
+</tbody>
+</table>
+</div>
+</div>
+</article>
+</div>
+
+<div>
+<article class="panel">
+<div class="panel-header">
+<div class="country-toolbar">
+<div>
+<h2>Countries with Most Flights</h2>
+<p>Traffic concentration by destination and departure hubs.</p>
+</div>
+<div class="period-toggle" id="countryPeriodToggle">
+<button type="button" class="active" data-period="weekly">Weekly</button>
+<button type="button" data-period="monthly">Monthly</button>
+<button type="button" data-period="yearly">Yearly</button>
+</div>
+</div>
+</div>
+<div class="panel-body" style="padding-top:16px;">
+<div class="table-wrap">
+<table class="country-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Country</th>
+<th>Total Flights</th>
+<th>vs. Last Period</th>
+<th>Departures</th>
+<th>Arrivals</th>
+</tr>
+</thead>
+<tbody id="countryTableBody"></tbody>
+</table>
+</div>
+</div>
+</article>
+
+<article class="panel" style="margin-top: 22px;">
+<div class="panel-header">
+<div>
+<h2>Gate Activity</h2>
+<p>Busiest gate allocation snapshot.</p>
+</div>
+<div class="panel-badge">{{ active_gates }} gates</div>
+</div>
+<div class="panel-body list-panel">
+{% for gate, count in busiest_gates %}
+<div class="list-row">
+<div>
+<strong>Gate {{ gate }}</strong>
+<small>Assigned departures</small>
+</div>
+<span class="list-pill">{{ count }}</span>
+</div>
+{% endfor %}
+{% if busiest_gates|length == 0 %}
+<div style="color: var(--muted);">No gate activity available.</div>
+{% endif %}
+</div>
+</article>
+</div>
+</section>
+
+ </div>
+<div class="dashboard-footer">
+<p style="margin:0 0 6px;">Airline Operations System</p>
+<p style="margin:0 0 6px;">Contact: operations@tunisair.com</p>
+<p style="margin:0;">© 2026 Tunisair Operations Platform</p>
+</div>
+</main>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const darkModeToggle = document.getElementById("darkModeToggle")
+const savedTheme = localStorage.getItem("theme")
+const countryStats = {{ country_stats|tojson }}
+const countryTableBody = document.getElementById("countryTableBody")
+const countryPeriodToggle = document.getElementById("countryPeriodToggle")
+const routeMapCities = {{ route_map_cities|tojson }}
+const routeMapLines = {{ route_map_lines|tojson }}
+
+if(savedTheme === "dark"){
+document.body.classList.add("dark-mode")
+}
+
+if(darkModeToggle){
+darkModeToggle.addEventListener("click", () => {
+document.body.classList.toggle("dark-mode")
+localStorage.setItem("theme", document.body.classList.contains("dark-mode") ? "dark" : "light")
+})
+}
+
+function renderCountryRows(period){
+if(!countryTableBody){
+return
+}
+
+const rows = countryStats[period] || []
+
+if(rows.length === 0){
+countryTableBody.innerHTML = `
+<tr>
+<td colspan="6" style="color: var(--muted);">No country data available for this period.</td>
+</tr>
+`
+return
+}
+
+countryTableBody.innerHTML = rows.map(row => `
+<tr>
+<td class="country-id">${row.id}</td>
+<td>
+<div class="country-cell">
+${row.flag_url ? `<img src="${row.flag_url}" alt="${row.country}" class="country-flag">` : `<span class="country-flag-fallback"><i class="fa-solid fa-plane"></i></span>`}
+<div>
+<strong>${row.country}</strong>
+<span class="country-subtitle">Flight hub activity</span>
+</div>
+</div>
+</td>
+<td class="country-count">${row.total}</td>
+<td>
+<span class="growth-chip ${row.growth_tone}">${row.growth}</span>
+</td>
+<td>${row.departures}</td>
+<td>${row.arrivals}</td>
+</tr>
+`).join("")
+}
+
+if(countryPeriodToggle){
+countryPeriodToggle.querySelectorAll("button").forEach(button => {
+button.addEventListener("click", () => {
+countryPeriodToggle.querySelectorAll("button").forEach(item => item.classList.remove("active"))
+button.classList.add("active")
+renderCountryRows(button.dataset.period)
+})
+})
+}
+
+renderCountryRows("weekly")
+
+const mapElement = document.getElementById("flightRoutesMap")
+
+if(mapElement && typeof L !== "undefined"){
+const map = L.map("flightRoutesMap", {
+zoomControl: false,
+scrollWheelZoom: false,
+dragging: true
+}).setView([38.5, 12], 4)
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+maxZoom: 8,
+attribution: "&copy; OpenStreetMap contributors"
+}).addTo(map)
+
+const statusColors = {
+"On Time": "#15803d",
+"Boarding": "#2563eb",
+"Delayed": "#d97706",
+"Cancelled": "#dc2626"
+}
+
+const cityIcon = L.divIcon({
+className: "",
+html: '<div class="city-marker"></div>',
+iconSize: [14, 14],
+iconAnchor: [7, 7]
+})
+
+routeMapCities.forEach(city => {
+L.marker([city.lat, city.lng], { icon: cityIcon })
+.addTo(map)
+.bindPopup(`<strong>${city.name}</strong>`)
+})
+
+routeMapLines.forEach(route => {
+const line = L.polyline(
+[
+[route.lat1, route.lng1],
+[route.lat2, route.lng2]
+],
+{
+color: statusColors[route.status] || "#6b7280",
+weight: 4,
+opacity: 0.85,
+dashArray: route.status === "Cancelled" ? "8 8" : null
+}
+).addTo(map)
+
+line.bindPopup(`
+<strong>${route.flight_number}</strong><br>
+${route.departure} &rarr; ${route.destination}<br>
+Status: ${route.status}
+`)
+})
+}
+</script>
+</body>
+</html>

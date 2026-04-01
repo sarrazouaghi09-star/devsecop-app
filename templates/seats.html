@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block header_title %}Seat Assignment{% endblock %}
+
+{% block content %}
+
+<style>
+.seats-shell{
+max-width:1280px;
+margin:0 auto;
+padding:40px 24px 24px;
+}
+
+.seats-topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:20px;
+padding:22px 24px;
+background:#fff;
+border:1px solid rgba(216,224,235,0.85);
+border-radius:22px;
+box-shadow:0 14px 34px rgba(15, 23, 42, 0.05);
+flex-wrap:wrap;
+margin-bottom:24px;
+}
+
+.seats-kicker{
+font-size:0.82rem;
+color:#6b7280;
+margin-bottom:6px;
+letter-spacing:0.14em;
+text-transform:uppercase;
+}
+
+.seats-topbar h1{
+margin:0;
+font-size:2rem;
+line-height:1.1;
+font-weight:700;
+color:#1f2937;
+}
+
+.seats-topbar p{
+margin:10px 0 0;
+color:#6b7280;
+max-width:720px;
+}
+
+.seats-chip{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 14px;
+background:linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+border:1px solid rgba(216,224,235,0.9);
+border-radius:20px;
+min-width:220px;
+}
+
+.seats-chip-icon{
+width:42px;
+height:42px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#1f1f1f;
+color:#fff;
+font-size:1rem;
+}
+
+.seats-chip small{
+display:block;
+color:#6b7280;
+text-transform:uppercase;
+letter-spacing:0.08em;
+font-size:0.72rem;
+}
+
+.seats-panel{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15, 23, 42, 0.06);
+overflow:hidden;
+}
+
+.seats-panel-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 18px;
+border-bottom:1px solid rgba(216,224,235,0.55);
+}
+
+.seats-panel-header h2{
+margin:0;
+font-size:1.2rem;
+font-weight:700;
+color:#1f2937;
+}
+
+.seats-panel-header p{
+margin:8px 0 0;
+color:#6b7280;
+}
+
+.seats-badge{
+padding:8px 12px;
+border-radius:999px;
+background:#f7f8fb;
+color:#6b7280;
+font-size:0.82rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.seats-panel-body{
+padding:12px 24px 24px;
+}
+
+.filter-form{
+display:flex;
+align-items:center;
+justify-content:center;
+gap:10px;
+flex-wrap:nowrap;
+margin-bottom:16px;
+}
+
+.filter-form select{
+min-width:220px;
+border-radius:16px;
+border:1px solid rgba(216,224,235,0.9);
+padding:10px 14px;
+box-shadow:none;
+}
+
+.filter-form select:focus{
+border-color:#f29aaa;
+box-shadow:0 0 0 4px rgba(217,4,41,0.08);
+outline:none;
+}
+
+.filter-btn,
+.reset-btn{
+border-radius:14px;
+padding:10px 14px;
+font-weight:600;
+}
+
+.seats-table-wrap{
+overflow-x:auto;
+max-width:100%;
+max-height:640px;
+overflow-y:auto;
+}
+
+.seats-table{
+width:100%;
+border-collapse:collapse;
+min-width:820px;
+}
+
+.seats-table th,
+.seats-table td{
+padding:12px 14px;
+text-align:left;
+border-bottom:1px solid rgba(216,224,235,0.8);
+vertical-align:middle;
+}
+
+.seats-table th{
+font-size:0.82rem;
+text-transform:uppercase;
+letter-spacing:0.08em;
+color:#6b7280;
+background:#fafbfc;
+}
+
+.seats-table tbody tr{
+transition:background 0.2s ease;
+}
+
+.seats-table tbody tr:hover{
+background:#fafbfd;
+}
+
+.seats-table tr:last-child td{
+border-bottom:none;
+}
+
+.passenger-name{
+font-weight:700;
+color:#111827;
+}
+
+.flight-pill,
+.seat-pill{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:6px 10px;
+border-radius:999px;
+font-size:0.78rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.flight-pill{
+background:#dbeafe;
+color:#1d4ed8;
+}
+
+.seat-pill{
+background:#dcfce7;
+color:#15803d;
+}
+
+body.dark-mode .seats-topbar,
+body.dark-mode .seats-panel{
+background:#1f2937;
+border-color:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .seats-topbar h1,
+body.dark-mode .seats-panel-header h2,
+body.dark-mode .passenger-name{
+color:#e5e7eb;
+}
+
+body.dark-mode .seats-kicker,
+body.dark-mode .seats-topbar p,
+body.dark-mode .seats-chip small,
+body.dark-mode .seats-panel-header p,
+body.dark-mode .seats-badge,
+body.dark-mode .seats-table th{
+color:#cbd5e1;
+}
+
+body.dark-mode .seats-chip,
+body.dark-mode .seats-badge,
+body.dark-mode .seats-table th,
+body.dark-mode .seats-table tbody tr:hover,
+body.dark-mode .filter-form select{
+background:#000;
+border-color:#1f2937;
+}
+
+body.dark-mode .filter-form select,
+body.dark-mode .filter-form select option{
+color:#e5e7eb;
+}
+
+body.dark-mode .seats-panel-header,
+body.dark-mode .seats-table td,
+body.dark-mode .seats-table th{
+border-color:#1f2937;
+}
+
+body.dark-mode .seats-chip-icon{
+background:#000;
+}
+
+@media (max-width: 768px){
+.seats-shell{
+padding:30px 18px 18px;
+}
+
+.seats-topbar{
+padding:20px 18px;
+}
+
+.seats-panel-header,
+.seats-panel-body{
+padding-left:18px;
+padding-right:18px;
+}
+
+.seats-chip{
+width:100%;
+}
+
+.filter-form{
+width:100%;
+flex-wrap:wrap;
+}
+}
+</style>
+
+<div class="seats-shell">
+<div class="seats-topbar">
+<div style="min-width:0; flex:1 1 320px;">
+<div class="seats-kicker">Operations / <strong style="color:#d90429;">Seat Assignment</strong></div>
+<h1>Seat Assignment</h1>
+<p>Review the current passenger-to-seat allocation across all flights from a single manifest table.</p>
+</div>
+
+<div class="seats-chip">
+<div>
+<strong>{{ passengers|length }} assigned seats</strong>
+<small>Passenger manifest</small>
+</div>
+<div class="seats-chip-icon">
+<i class="fa-solid fa-chair"></i>
+</div>
+</div>
+</div>
+
+<section class="seats-panel">
+<div class="seats-panel-header">
+<div>
+<h2>Seat Assignments</h2>
+<p>Passenger roster with passport, flight number, and assigned seat.</p>
+</div>
+<div class="seats-badge">{{ passengers|length }} listed</div>
+</div>
+
+<div class="seats-panel-body">
+<form method="GET" action="/seats" class="filter-form">
+<div class="input-group" style="max-width: 300px;">
+<input type="text" class="form-control" name="name" placeholder="Search by name" value="{{ selected_name if selected_name else '' }}">
+<span class="input-group-text" style="cursor: pointer;" onclick="this.closest('form').submit()">
+<i class="fas fa-search"></i>
+</span>
+</div>
+
+<select name="flight">
+<option value="">All Flights</option>
+{% for f in flights %}
+<option value="{{ f[0] }}" {% if selected_flight == f[0]|string %}selected{% endif %}>{{ f[1] }}</option>
+{% endfor %}
+</select>
+<button class="btn btn-danger filter-btn" type="submit">Filter</button>
+<a href="/seats" class="btn btn-outline-secondary reset-btn">Reset</a>
+</form>
+
+<div class="seats-table-wrap">
+<table class="seats-table">
+<thead>
+<tr>
+<th>Passenger</th>
+<th>Passport</th>
+<th>Flight</th>
+<th>Seat</th>
+</tr>
+</thead>
+
+<tbody>
+{% for p in passengers %}
+<tr>
+<td class="passenger-name">
+<i class="fa fa-user text-secondary"></i>
+{{ p[1] }}
+</td>
+<td>{{ p[2] }}</td>
+<td><span class="flight-pill">{{ p[3] }}</span></td>
+<td><span class="seat-pill"><i class="fa fa-chair"></i> {{ p[4] }}</span></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</div>
+
+{% endblock %}

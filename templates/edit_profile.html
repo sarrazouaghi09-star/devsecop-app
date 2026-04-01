@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block header_title %}Edit Profile{% endblock %}
+
+{% block content %}
+
+<style>
+.profile-shell{
+max-width:1200px;
+margin:0 auto;
+padding:40px 24px 24px;
+}
+
+.profile-topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:20px;
+padding:22px 24px;
+background:#fff;
+border:1px solid rgba(216,224,235,0.85);
+border-radius:22px;
+box-shadow:0 14px 34px rgba(15, 23, 42, 0.05);
+flex-wrap:wrap;
+margin-bottom:24px;
+}
+
+.profile-kicker{
+font-size:0.82rem;
+color:#6b7280;
+margin-bottom:6px;
+letter-spacing:0.14em;
+text-transform:uppercase;
+}
+
+.profile-topbar h1{
+margin:0;
+font-size:2rem;
+line-height:1.1;
+font-weight:700;
+color:#1f2937;
+}
+
+.profile-topbar p{
+margin:10px 0 0;
+color:#6b7280;
+max-width:720px;
+}
+
+.profile-chip-avatar{
+position:relative;
+width:150px;
+height:150px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#1f1f1f;
+color:#fff;
+font-size:2.4rem;
+overflow:visible;
+margin-left:auto;
+border:4px solid #fff;
+box-shadow:0 12px 28px rgba(15, 23, 42, 0.16);
+transition:transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.profile-chip-avatar img{
+width:100%;
+height:100%;
+object-fit:cover;
+border-radius:50%;
+transition:filter 0.25s ease;
+}
+
+.profile-chip-avatar:hover{
+box-shadow:0 16px 34px rgba(15, 23, 42, 0.2);
+}
+
+.profile-chip-avatar:hover img{
+filter:brightness(0.82);
+}
+
+.profile-pfp-input{
+display:none;
+}
+
+.profile-avatar-edit{
+position:absolute;
+right:-2px;
+bottom:-2px;
+width:46px;
+height:46px;
+padding:0;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#d90429;
+color:#fff;
+border:3px solid #fff;
+cursor:pointer;
+box-shadow:0 8px 18px rgba(15, 23, 42, 0.2);
+transition:transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+font-size:1rem;
+line-height:1;
+z-index:2;
+}
+
+.profile-avatar-edit i{
+display:block;
+line-height:1;
+font-size:1.3rem;
+transform:translate(-0.5px, 0.5px);
+}
+
+.profile-avatar-edit:hover{
+background:#b80322;
+transform:translateY(-1px) scale(1.04);
+box-shadow:0 12px 22px rgba(15, 23, 42, 0.24);
+}
+
+.profile-grid{
+display:grid;
+grid-template-columns:repeat(2, minmax(0, 1fr));
+gap:24px;
+}
+
+.profile-card{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15, 23, 42, 0.06);
+overflow:hidden;
+}
+
+.profile-card-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 18px;
+border-bottom:1px solid rgba(216,224,235,0.55);
+}
+
+.profile-card-header h2{
+margin:0;
+font-size:1.15rem;
+font-weight:700;
+color:#1f2937;
+}
+
+.profile-card-header p{
+margin:8px 0 0;
+color:#6b7280;
+}
+
+.profile-card-body{
+padding:24px;
+}
+
+.profile-badge{
+padding:8px 12px;
+border-radius:999px;
+background:#f7f8fb;
+color:#6b7280;
+font-size:0.82rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.form-label{
+font-weight:600;
+color:#374151;
+}
+
+.form-control,
+.form-select{
+border-radius:16px;
+border:1px solid rgba(216,224,235,0.9);
+padding:12px 14px;
+box-shadow:none;
+}
+
+.form-control:focus,
+.form-select:focus{
+border-color:#f29aaa;
+box-shadow:0 0 0 4px rgba(217,4,41,0.08);
+}
+
+.input-group-text{
+border-radius:16px 0 0 16px;
+border:1px solid rgba(216,224,235,0.9);
+border-right:none;
+background:#f8fafc;
+color:#374151;
+font-weight:700;
+}
+
+.input-group .form-control{
+border-radius:0 16px 16px 0;
+}
+
+.profile-actions{
+display:flex;
+justify-content:flex-end;
+margin-top:24px;
+}
+
+.save-btn{
+background:#d90429;
+border-color:#d90429;
+color:#fff;
+font-weight:700;
+padding:12px 22px;
+border-radius:16px;
+}
+
+.save-btn:hover{
+background:#b80322;
+border-color:#b80322;
+color:#fff;
+}
+
+body.dark-mode .profile-topbar,
+body.dark-mode .profile-card{
+background:#1f2937;
+border-color:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .profile-topbar h1,
+body.dark-mode .profile-card-header h2{
+color:#e5e7eb;
+}
+
+body.dark-mode .profile-kicker,
+body.dark-mode .profile-topbar p,
+body.dark-mode .profile-card-header p,
+body.dark-mode .profile-badge,
+body.dark-mode .form-label{
+color:#cbd5e1 !important;
+}
+
+body.dark-mode .profile-badge{
+background:#000;
+border-color:#1f2937;
+}
+
+body.dark-mode .profile-chip-avatar{
+background:#000;
+border-color:#374151;
+}
+
+body.dark-mode .profile-avatar-edit{
+border-color:#1f2937;
+}
+
+body.dark-mode .profile-card-header{
+border-color:#1f2937;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select{
+background:#374151;
+color:#e5e7eb;
+border-color:#4b5563;
+}
+
+body.dark-mode .input-group-text{
+background:#111827;
+color:#e5e7eb;
+border-color:#4b5563;
+}
+
+body.dark-mode .form-control::placeholder{
+color:#cbd5e1;
+opacity:1;
+}
+
+@media (max-width: 992px){
+.profile-grid{
+grid-template-columns:1fr;
+}
+}
+
+@media (max-width: 768px){
+.profile-shell{
+padding:30px 18px 18px;
+}
+
+.profile-topbar,
+.profile-card-header,
+.profile-card-body{
+padding-left:18px;
+padding-right:18px;
+}
+
+}
+</style>
+
+<div class="profile-shell">
+<div class="profile-topbar">
+<div style="min-width:0; flex:1 1 320px;">
+<div class="profile-kicker">Profile / <strong style="color:#d90429;">Edit Profile</strong></div>
+<h1>Edit Profile</h1>
+<p>Update your personal details, staff information, and account security from one airline operations profile page.</p>
+</div>
+
+<div class="profile-chip-avatar">
+{% if user.pfp %}
+<img id="profileImg" src="/static/uploads/users/{{ user.pfp }}?t={{ user.id }}" alt="{{ user.name }}">
+{% else %}
+<i class="fa-solid fa-user-gear"></i>
+{% endif %}
+<label for="profilePfpInput" class="profile-avatar-edit">
+<i class="fa-solid fa-pen-to-square"></i>
+</label>
+</div>
+</div>
+
+{% if profile_error %}
+<div class="alert alert-danger mb-4" role="alert">{{ profile_error }}</div>
+{% endif %}
+
+{% if profile_success %}
+<div class="alert alert-success mb-4" role="alert">Profile updated successfully.</div>
+{% endif %}
+
+<form method="POST" action="/update-profile" enctype="multipart/form-data">
+<input type="hidden" name="user_id" value="{{ user.id }}">
+<input type="file" name="pfp" id="profilePfpInput" class="profile-pfp-input" accept="image/*" onchange="previewImage(event)">
+<div class="profile-grid">
+<section class="profile-card">
+<div class="profile-card-header">
+<div>
+<h2><i class="fa-solid fa-id-card me-2"></i>Personal Information</h2>
+<p>Keep your contact details up to date for operations and staffing communication.</p>
+</div>
+<div class="profile-badge">Personal</div>
+</div>
+<div class="profile-card-body">
+<div class="mb-3">
+<label class="form-label">Full Name</label>
+<input type="text" name="name" class="form-control" value="{{ user.name }}">
+</div>
+<div class="mb-3">
+<label class="form-label">Email</label>
+<input type="email" name="email" class="form-control" value="{{ user.email }}">
+</div>
+<div class="mb-0">
+<label class="form-label">Phone Number</label>
+<div class="input-group">
+<span class="input-group-text">+216</span>
+<input
+type="text"
+name="phone"
+class="form-control"
+value="{% if user.phone and user.phone|length == 8 %}{{ user.phone[:2] }} {{ user.phone[2:5] }} {{ user.phone[5:] }}{% else %}{{ user.phone }}{% endif %}"
+placeholder="00 000 000"
+inputmode="numeric"
+maxlength="10"
+pattern="[0-9]{2} [0-9]{3} [0-9]{3}"
+title="Phone number must contain exactly 8 digits"
+oninput="let digits=this.value.replace(/\D/g,'').slice(0,8); this.value = digits.length > 5 ? `${digits.slice(0,2)} ${digits.slice(2,5)} ${digits.slice(5)}` : digits.length > 2 ? `${digits.slice(0,2)} ${digits.slice(2)}` : digits;">
+</div>
+</div>
+</div>
+</section>
+
+<section class="profile-card">
+<div class="profile-card-header">
+<div>
+<h2><i class="fa-solid fa-briefcase me-2"></i>Staff Information</h2>
+<p>Manage your internal airline operations profile and organizational details.</p>
+</div>
+<div class="profile-badge">Staff</div>
+</div>
+<div class="profile-card-body">
+<div class="mb-3">
+<label class="form-label">User ID</label>
+<input type="text" name="staff_id" class="form-control" value="{{ user.staff_id }}" {% if not role_editable %}readonly{% endif %} required>
+</div>
+<div class="mb-3">
+<label class="form-label">Department</label>
+<select name="department" class="form-select" {% if not role_editable %}disabled{% endif %}>
+<option value="Operations" {% if user.department == "Operations" %}selected{% endif %}>Operations</option>
+<option value="Ground Handling" {% if user.department == "Ground Handling" %}selected{% endif %}>Ground Handling</option>
+<option value="Security" {% if user.department == "Security" %}selected{% endif %}>Security</option>
+<option value="Customer Service" {% if user.department == "Customer Service" %}selected{% endif %}>Customer Service</option>
+<option value="Maintenance" {% if user.department == "Maintenance" %}selected{% endif %}>Maintenance</option>
+</select>
+{% if not role_editable %}
+<input type="hidden" name="department" value="{{ user.department }}">
+{% endif %}
+</div>
+<div class="mb-0">
+<label class="form-label">Role</label>
+<select name="role" class="form-select" {% if not role_editable %}disabled{% endif %}>
+<option value="admin" {% if user.role == "admin" %}selected{% endif %}>Admin</option>
+<option value="staff" {% if user.role == "staff" %}selected{% endif %}>Staff</option>
+</select>
+{% if not role_editable %}
+<input type="hidden" name="role" value="{{ user.role }}">
+{% endif %}
+</div>
+</div>
+</section>
+
+<section class="profile-card" style="grid-column:1 / -1;">
+<div class="profile-card-header">
+<div>
+<h2><i class="fa-solid fa-shield-halved me-2"></i>Security</h2>
+<p>Set a new password for your airline operations account when needed.</p>
+</div>
+<div class="profile-badge">Security</div>
+</div>
+<div class="profile-card-body">
+<div class="row g-3">
+<div class="col-md-6">
+<label class="form-label">New Password</label>
+<input type="password" name="new_password" class="form-control" placeholder="****">
+</div>
+<div class="col-md-6">
+<label class="form-label">Confirm Password</label>
+<input type="password" name="confirm_password" class="form-control" placeholder="****">
+</div>
+</div>
+</div>
+</section>
+</div>
+
+<div class="profile-actions">
+<button type="submit" class="btn save-btn">
+<i class="fa-solid fa-floppy-disk me-2"></i>Save Changes
+</button>
+</div>
+</form>
+</div>
+
+<script>
+function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('profileImg').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+</script>
+
+{% endblock %}

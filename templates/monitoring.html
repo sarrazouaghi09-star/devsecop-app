@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+
+{% block header_title %}System Monitoring{% endblock %}
+
+{% block content %}
+
+<style>
+.monitoring-shell{
+max-width:1280px;
+margin:0 auto;
+padding:40px 24px 24px;
+}
+
+.monitoring-topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:20px;
+padding:22px 24px;
+background:#fff;
+border:1px solid rgba(216,224,235,0.85);
+border-radius:22px;
+box-shadow:0 14px 34px rgba(15, 23, 42, 0.05);
+flex-wrap:wrap;
+margin-bottom:24px;
+}
+
+.monitoring-kicker{
+font-size:0.82rem;
+color:#6b7280;
+margin-bottom:6px;
+letter-spacing:0.14em;
+text-transform:uppercase;
+}
+
+.monitoring-topbar h1{
+margin:0;
+font-size:2rem;
+line-height:1.1;
+font-weight:700;
+color:#1f2937;
+}
+
+.monitoring-topbar p{
+margin:10px 0 0;
+color:#6b7280;
+max-width:720px;
+}
+
+.monitoring-chip{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 14px;
+background:linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+border:1px solid rgba(216,224,235,0.9);
+border-radius:20px;
+min-width:220px;
+}
+
+.monitoring-chip-icon{
+width:42px;
+height:42px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#1f1f1f;
+color:#fff;
+font-size:1rem;
+}
+
+.monitoring-chip small{
+display:block;
+color:#6b7280;
+text-transform:uppercase;
+letter-spacing:0.08em;
+font-size:0.72rem;
+}
+
+.metrics{
+display:grid;
+grid-template-columns:repeat(3, minmax(0, 1fr));
+gap:18px;
+align-items:stretch;
+margin-bottom:22px;
+}
+
+.metric-card{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.82);
+border-radius:24px;
+padding:20px 22px;
+box-shadow:0 16px 36px rgba(15, 23, 42, 0.05);
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+position:relative;
+overflow:hidden;
+}
+
+.metric-card::after{
+content:"";
+position:absolute;
+left:0;
+right:0;
+bottom:0;
+height:4px;
+}
+
+.metric-card.red::after{
+background:linear-gradient(90deg, #fca5a5, #dc2626);
+}
+
+.metric-card.amber::after{
+background:linear-gradient(90deg, #fcd34d, #d97706);
+}
+
+.metric-card.blue::after{
+background:linear-gradient(90deg, #93c5fd, #2563eb);
+}
+
+.metric-top{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:14px;
+margin-bottom:14px;
+}
+
+.metric-label{
+font-size:0.9rem;
+font-weight:700;
+color:#6b7280;
+margin-bottom:8px;
+}
+
+.metric-value{
+font-size:1.9rem;
+font-weight:700;
+line-height:1;
+color:#111827;
+}
+
+.metric-icon{
+width:48px;
+height:48px;
+border-radius:16px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:1.1rem;
+}
+
+.metric-card.red .metric-icon{
+background:#fee2e2;
+color:#dc2626;
+}
+
+.metric-card.amber .metric-icon{
+background:#fef3c7;
+color:#d97706;
+}
+
+.metric-card.blue .metric-icon{
+background:#dbeafe;
+color:#2563eb;
+}
+
+.metric-note{
+font-size:0.88rem;
+color:#6b7280;
+}
+
+.progress-track{
+height:10px;
+background:#eef2f7;
+border-radius:999px;
+overflow:hidden;
+margin-top:16px;
+}
+
+.progress-fill{
+height:100%;
+border-radius:999px;
+}
+
+.progress-fill.red{
+background:#dc2626;
+}
+
+.progress-fill.amber{
+background:#d97706;
+}
+
+.progress-fill.blue{
+background:#2563eb;
+}
+
+.monitoring-grid{
+display:grid;
+grid-template-columns:repeat(2, minmax(0, 1fr));
+gap:22px;
+}
+
+.monitoring-panel{
+background:linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+border:1px solid rgba(216,224,235,0.8);
+border-radius:28px;
+box-shadow:0 18px 44px rgba(15, 23, 42, 0.06);
+overflow:hidden;
+}
+
+.monitoring-panel-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:18px;
+padding:24px 24px 18px;
+border-bottom:1px solid rgba(216,224,235,0.55);
+}
+
+.monitoring-panel-header h2{
+margin:0;
+font-size:1.2rem;
+font-weight:700;
+color:#1f2937;
+}
+
+.monitoring-panel-header p{
+margin:8px 0 0;
+color:#6b7280;
+}
+
+.monitoring-badge{
+padding:8px 12px;
+border-radius:999px;
+background:#f7f8fb;
+color:#6b7280;
+font-size:0.82rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.monitoring-panel-body{
+padding:24px;
+}
+
+.status-pill{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:6px 10px;
+border-radius:999px;
+font-size:0.78rem;
+font-weight:700;
+white-space:nowrap;
+}
+
+.status-pill.success{
+background:#dcfce7;
+color:#15803d;
+}
+
+.status-pill.warning{
+background:#fef3c7;
+color:#d97706;
+}
+
+.panel-copy{
+margin-top:12px;
+color:#475569;
+}
+
+body.dark-mode .monitoring-topbar,
+body.dark-mode .metric-card,
+body.dark-mode .monitoring-panel{
+background:#1f2937;
+border-color:#000;
+color:#e5e7eb;
+}
+
+body.dark-mode .monitoring-topbar h1,
+body.dark-mode .metric-value,
+body.dark-mode .monitoring-panel-header h2{
+color:#e5e7eb;
+}
+
+body.dark-mode .monitoring-kicker,
+body.dark-mode .monitoring-topbar p,
+body.dark-mode .monitoring-chip small,
+body.dark-mode .metric-label,
+body.dark-mode .metric-note,
+body.dark-mode .monitoring-panel-header p,
+body.dark-mode .monitoring-badge,
+body.dark-mode .panel-copy{
+color:#cbd5e1;
+}
+
+body.dark-mode .monitoring-chip,
+body.dark-mode .monitoring-badge,
+body.dark-mode .progress-track{
+background:#000;
+border-color:#1f2937;
+}
+
+body.dark-mode .monitoring-chip-icon{
+background:#000;
+}
+
+body.dark-mode .monitoring-panel-header{
+border-color:#1f2937;
+}
+
+@media (max-width: 900px){
+.metrics,
+.monitoring-grid{
+grid-template-columns:1fr;
+}
+}
+
+@media (max-width: 768px){
+.monitoring-shell{
+padding:30px 18px 18px;
+}
+
+.monitoring-topbar{
+padding:20px 18px;
+}
+
+.monitoring-panel-header,
+.monitoring-panel-body{
+padding-left:18px;
+padding-right:18px;
+}
+
+.monitoring-chip{
+width:100%;
+}
+}
+</style>
+
+<div class="monitoring-shell">
+<div class="monitoring-topbar">
+<div style="min-width:0; flex:1 1 320px;">
+<div class="monitoring-kicker">Support / <strong style="color:#d90429;">System Monitoring</strong></div>
+<h1>System Monitoring</h1>
+<p>Track live system resource usage, server health, and security observation status from one monitoring view.</p>
+</div>
+
+<div class="monitoring-chip">
+<div>
+<strong>Auto-refresh every 5s</strong>
+<small>Live resource watch</small>
+</div>
+<div class="monitoring-chip-icon">
+<i class="fa-solid fa-chart-line"></i>
+</div>
+</div>
+</div>
+
+<section class="metrics">
+<article class="metric-card red">
+<div class="metric-top">
+<div>
+<div class="metric-label">CPU Usage</div>
+<div class="metric-value">{{ cpu }}%</div>
+</div>
+<div class="metric-icon"><i class="fa-solid fa-microchip"></i></div>
+</div>
+<div class="metric-note">Current processor load observed by the monitoring service.</div>
+<div class="progress-track">
+<div class="progress-fill red" style="width: {{ cpu }}%;"></div>
+</div>
+</article>
+
+<article class="metric-card amber">
+<div class="metric-top">
+<div>
+<div class="metric-label">Memory Usage</div>
+<div class="metric-value">{{ memory }}%</div>
+</div>
+<div class="metric-icon"><i class="fa-solid fa-memory"></i></div>
+</div>
+<div class="metric-note">Live memory consumption across the application environment.</div>
+<div class="progress-track">
+<div class="progress-fill amber" style="width: {{ memory }}%;"></div>
+</div>
+</article>
+
+<article class="metric-card blue">
+<div class="metric-top">
+<div>
+<div class="metric-label">Disk Usage</div>
+<div class="metric-value">{{ disk }}%</div>
+</div>
+<div class="metric-icon"><i class="fa-solid fa-hard-drive"></i></div>
+</div>
+<div class="metric-note">Current disk utilization measured on the hosting system.</div>
+<div class="progress-track">
+<div class="progress-fill blue" style="width: {{ disk }}%;"></div>
+</div>
+</article>
+</section>
+
+<section class="monitoring-grid">
+<article class="monitoring-panel">
+<div class="monitoring-panel-header">
+<div>
+<h2>Server Status</h2>
+<p>Core application services and infrastructure availability.</p>
+</div>
+<div class="monitoring-badge">Live</div>
+</div>
+<div class="monitoring-panel-body">
+<span class="status-pill success">System Running</span>
+<p class="panel-copy">Monitoring active services, process health, and platform resource consumption in real time.</p>
+</div>
+</article>
+
+<article class="monitoring-panel">
+<div class="monitoring-panel-header">
+<div>
+<h2>Security Monitoring</h2>
+<p>Continuous review of log streams and system alerting.</p>
+</div>
+<div class="monitoring-badge">Observed</div>
+</div>
+<div class="monitoring-panel-body">
+<span class="status-pill warning">Monitoring Logs &amp; Alerts</span>
+<p class="panel-copy">Security tooling continues to analyze logs and alert streams for abnormal activity patterns.</p>
+</div>
+</article>
+</section>
+</div>
+
+<script>
+setTimeout(function(){
+location.reload();
+},5000)
+</script>
+
+{% endblock %}
