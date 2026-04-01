@@ -80,7 +80,7 @@ jobs:
       - name: Generate SBOM with Syft
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
-           ./bin/syft scan "ghcr.io/${{ github.repository }}:latest" -o jspn > sbom.json
+           ./bin/syft scan "ghcr.io/${{ github.repository }}:latest" -o json > sbom.json
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
