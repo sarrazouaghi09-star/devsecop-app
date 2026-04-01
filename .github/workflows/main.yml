@@ -112,7 +112,7 @@ jobs:
       - name: Push image to GHCR
         run: docker push ghcr.io/${{ github.repository }}:latest
   deploy:
-    needs: docker-build
+    needs: [build-test, docker-build]
     runs-on: self-hosted
     steps:
       - name: Deploy locally
