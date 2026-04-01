@@ -117,15 +117,27 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bandit-report
+      - name: Download Gitleaks report
+        uses: actions/download-artifact@v4
+        with:
+          name: gitleaks-report
       - name: Upload Bandit
         run: |
           curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/import-scan/" \
           -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
           -F "file=@bandit-report.json" \
           -F "scan_type=Bandit Scan" \
-          -F "product_name=Airline DevSecOps App" \
-          -F "engagement_name=CI Pipeline" \
+          -F "product_name=airline app" \
+          -F "engagement_name=pip" \
           -F "auto_create_context=true"
+      - name: Upload Gitleaks to DefectDojo
+        run: |
+          curl -X POST "http://localhost:8080/api/v2/import-scan/" \
+          -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+          -F "file=@gitleaks-report.json" \
+          -F "scan_type=Gitleaks Scan" \
+          -F "product_name=airline app" \
+          -F "engagement_name=pip"
   zap-scan:
     runs-on: ubuntu-latest
     needs: deploy
