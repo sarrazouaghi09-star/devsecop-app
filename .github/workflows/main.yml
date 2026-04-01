@@ -6,10 +6,10 @@ on:
       - vulnerable-app
       - secure-app
   pull_request:
-    branches:
-     - main
-     - vulnerable-app
-     - secure-app
+    branches: 
+      - main
+      - vulnerable-app
+      - secure-app
 permissions:
   contents: read
   packages: write
@@ -80,7 +80,7 @@ jobs:
       - name: Generate SBOM with Syft
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
-           ./bin/syft scan "ghcr.io/${{ github.repository }}:latest" -o json > sbom.json
+          ./bin/syft scan "ghcr.io/${{ github.repository }}:latest" -o json > sbom.json
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
@@ -90,15 +90,6 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ghcr.io/${{ github.repository }}:latest
-                - name: Generate SBOM with Syft
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
-           ./bin/syft scan "ghcr.io/${{ github.repository }}:latest" -o json > sbom.json
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom-report
-          path: sbom.json
       - name: Scan Docker image with trivy
         uses: aquasecurity/trivy-action@master
         with:
