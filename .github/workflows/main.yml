@@ -25,6 +25,8 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         with:
           args: detect --source . --redact --exit-code 0 --report-format json --report-path gitleaks-report.json
+      - name: Debug Gitleaks output
+        run: ls -la
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -121,6 +123,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: gitleaks-report
+          path: gitleaks-report.json
       - name: Upload Bandit
         run: |
           curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/import-scan/" \
