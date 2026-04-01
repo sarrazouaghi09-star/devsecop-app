@@ -100,11 +100,15 @@ jobs:
         with:
           name: sbom-report
           path: sbom.json
-      - name: Run Trivy scan (JSON for DefectDojo)
-        run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-          -v ${{ github.workspace }}:/app aquasec/trivy:latest image \
-          --format json -o /app/trivy-report.json ghcr.io/${{ github.repository }}:latest
+      - name: Scan Docker image with trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ github.repository }}:latest
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
       - name: Upload Trivy artifact
         uses: actions/upload-artifact@v4
         with:
