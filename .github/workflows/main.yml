@@ -76,7 +76,7 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
           ./syft packages ghcr.io/${{ github.repository }}:latest -p jspn > sbom.json
       - name: Upload SBOM
-        users: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: sbom-report
           path: sbom.json
