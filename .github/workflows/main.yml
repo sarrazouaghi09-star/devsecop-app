@@ -100,6 +100,9 @@ jobs:
         with:
           name: sbom-report
           path: sbom.json
+      - name: Debug SBOM file
+        run: |
+          ls -la
       - name: Scan Docker image with trivy
         uses: aquasecurity/trivy-action@master
         with:
