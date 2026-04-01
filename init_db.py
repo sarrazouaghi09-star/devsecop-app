@@ -64,7 +64,7 @@ time TEXT
 )
 """)
 
-c.execute("INSERT INTO users VALUES(NULL,'admin','admin123','admin','')")
+INSERT INTO users (username, password, role) VALUES ('admin', 'admin123', 'admin')
 c.execute("INSERT INTO flights VALUES(NULL,'TU123','Tunis','Paris','A2','10.26','ON TIME')")
 
 conn.commit()
