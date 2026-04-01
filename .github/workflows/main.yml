@@ -35,6 +35,12 @@ jobs:
         run: | 
           ls -la
           cat gitleaks-report.json || echo "NO FILE"
+      - name: Upload Gitleaks artifcat
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          if-no-files: error
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
