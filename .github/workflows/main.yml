@@ -99,7 +99,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sbom-report
-          path: sbom.json
+          path: sbom-report.json
       - name: Debug SBOM file
         run: |
           ls -la
