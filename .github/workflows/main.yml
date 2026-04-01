@@ -51,6 +51,15 @@ jobs:
         with:
           name: bandit-report
           path: bandit-report.json
+      - name: Upload Bandit
+        run: |
+          curl -X POST "${{ secrets.DEFECTDOJO_URL }}/api/v2/import-scan/" \
+          -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+          -F "file=@bandit-report.json" \
+          -F "scan_type=Bandit Scan" \
+          -F "product_name=Airline DevSecOps App" \
+          -F "engagement_name=CI Pipeline" \
+          -F "auto_create_context=true"
 
       - name: Run app syntax check
         run: |
