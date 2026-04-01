@@ -21,10 +21,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Run Gitleaks (Secrets Scan)
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          args: detect --source . --redact --exit-code 0 --report-format json --report-path gitleaks-report.json
+      - name: Install Gitleaks
+        run: |
+          wget https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64.tar.gz
+          tar -xzf gitleaks-linux-amd64.tar.gz
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/
+
+      - name: Run Gitleaks (JSON output)
+        run: |
+          gitleaks detect --source . --redact --exit-code 0 --report-format json --report-path gitleaks-report.json
       - name: Debug Gitleaks output
         run: ls -la
       - name: Set up Python
