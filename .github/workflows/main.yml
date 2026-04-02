@@ -195,7 +195,7 @@ jobs:
          -v ${{ github.workspace }}:/zap/wrk/:rw \
          -w /zap/wrk \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-         -t https://four-threats-lot-constraints.trycloudflare.com \
+         -t https://employed-magnitude-direction-effectiveness.trycloudflare.com \
          -r zap-report.html \
          -x zap-report.xml || true
       - name: Debug files
