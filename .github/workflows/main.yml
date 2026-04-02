@@ -209,6 +209,7 @@ jobs:
           name: zap-report
           path: |
             zap-report.xml
+            zap-report.html
   
   upload-zap:
     runs-on: self-hosted
