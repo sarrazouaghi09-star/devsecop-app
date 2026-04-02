@@ -64,7 +64,8 @@ time TEXT
 )
 """)
 
-c.execute("INSERT INTO users (username, password, role) VALUES ('admin', 'admin123', 'admin')")
+c.execute("INSERT INTO users (username, password, role) VALUES ('admin', 'scrypt:32768:8:1$57AcwWh08SkgYzrY$7736c1d40f586bfd2d6abbc6d836b7d498bd16ab85833a8e2d24f174d0d3ff4bfbfd04b55129a0fba5df6764292dd85c713ff11c31e8cc15fc3ba1f23712e06c
+', 'admin')")
 c.execute("INSERT INTO flights VALUES(NULL,'TU123','Tunis','Paris','A2','10.26','ON TIME')")
 
 conn.commit()
