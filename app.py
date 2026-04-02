@@ -6,6 +6,7 @@ import calendar
 from datetime import date
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
+from werkzeug.security import check_password_hash
 
 
 app = Flask(__name__)
@@ -193,11 +194,11 @@ def login():
         conn = db()
         c = conn.cursor()
 
-        query = "SELECT * FROM users WHERE username=? AND password=?"
+        query = "SELECT * FROM users WHERE username=?"
 
-        user = c.execute(query, (username, password)).fetchone()
+        user = c.execute(query, (username,)).fetchone()
 
-        if user:
+        if user and check_password_hash(user[2], password):
             session["user_id"] = user[0]
             conn.close()
             return redirect("/dashboard")
@@ -1375,10 +1376,11 @@ def add_user():
 
     conn = db()
     cursor = conn.cursor()
+    hashed_password = generate_password_hash(password)
     cursor.execute("""
     INSERT INTO users(username, password, role, name, email, phone, staff_id, department, pfp)
     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (username, password, role, "", "", "", "", "", pfp_filename))
+    """, (username, hashed_password, role, "", "", "", "", "", pfp_filename))
     conn.commit()
     conn.close()
 
