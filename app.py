@@ -5,8 +5,8 @@ import psutil
 import calendar
 from datetime import date
 from datetime import datetime, timedelta
+from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
-from werkzeug.security import check_password_hash
 
 
 app = Flask(__name__)
@@ -20,6 +20,20 @@ ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 def db():
     return sqlite3.connect("database.db")
+
+
+def is_password_hash(value):
+    return isinstance(value, str) and value.count("$") >= 2
+
+
+def password_matches(stored_password, provided_password):
+    if not stored_password:
+        return False
+
+    if is_password_hash(stored_password):
+        return check_password_hash(stored_password, provided_password)
+
+    return stored_password == provided_password
 
 
 def ensure_user_profile_schema():
@@ -194,11 +208,18 @@ def login():
         conn = db()
         c = conn.cursor()
 
-        query = "SELECT * FROM users WHERE username=?"
+        user = c.execute(
+            "SELECT * FROM users WHERE username=?",
+            (username,)
+        ).fetchone()
 
-        user = c.execute(query, (username,)).fetchone()
-
-        if user and check_password_hash(user[2], password):
+        if user and password_matches(user[2], password):
+            if not is_password_hash(user[2]):
+                c.execute(
+                    "UPDATE users SET password=? WHERE id=?",
+                    (generate_password_hash(password), user[0])
+                )
+                conn.commit()
             session["user_id"] = user[0]
             conn.close()
             return redirect("/dashboard")
@@ -301,7 +322,7 @@ def update_profile():
         )
 
     role_to_save = requested_role if current_user_is_admin() else user["role"]
-    password_to_save = new_password if new_password else user["password"]
+    password_to_save = generate_password_hash(new_password) if new_password else user["password"]
     pfp_to_save = user["pfp"]
 
     if pfp_file and pfp_file.filename:
@@ -1376,11 +1397,10 @@ def add_user():
 
     conn = db()
     cursor = conn.cursor()
-    hashed_password = generate_password_hash(password)
     cursor.execute("""
     INSERT INTO users(username, password, role, name, email, phone, staff_id, department, pfp)
     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (username, hashed_password, role, "", "", "", "", "", pfp_filename))
+    """, (username, generate_password_hash(password), role, "", "", "", "", "", pfp_filename))
     conn.commit()
     conn.close()
 
@@ -1437,7 +1457,10 @@ def change_user_password(id):
         if not cursor.fetchone():
             return redirect("/users?password_status=error&password_message=User%20not%20found")
 
-        cursor.execute("UPDATE users SET password=? WHERE id=?", (new_password, id))
+        cursor.execute(
+            "UPDATE users SET password=? WHERE id=?",
+            (generate_password_hash(new_password), id)
+        )
         conn.commit()
     finally:
         conn.close()
