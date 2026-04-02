@@ -163,6 +163,14 @@ def get_current_user_profile():
         "password": row[9] or ""
     }
 
+@app.after_request
+def add_security_headers(response):
+    response.headers['Content-Security-Policy'] = "default-src 'self'"
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
+
 
 @app.context_processor
 def inject_admin_profile():
