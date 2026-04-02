@@ -196,9 +196,7 @@ jobs:
          -w /zap/wrk \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
          -t https://four-threats-lot-constraints.trycloudflare.com \                                      
-         -x zap-report.xml  \
-         -r zap-report.html \
-         -J zap-report.json 
+         -x zap-report.xml 
       - name: Debug files
         run: |
           echo "listing files"
@@ -210,8 +208,7 @@ jobs:
           name: zap-report
           path: |
             zap-report.xml
-            zap-report.html
-            zap-report.json
+  
   upload-zap:
     runs-on: self-hosted
     needs: zap-scan
