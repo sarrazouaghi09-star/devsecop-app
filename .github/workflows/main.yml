@@ -187,18 +187,19 @@ jobs:
     needs: deploy
 
     steps:
-     - name: Run ZAP Scan (JSON)
-       run: |
-         docker run --rm -v ${{ github.workspace }}:/zap/wrk/:rw \
+      - name: Run ZAP Scan 
+        run: |
+         docker run --rm -u root \
+         -v ${{ github.workspace }}:/zap/wrk/:rw \
          ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
          -t http://192.168.1.171:5000 \
          -J zap-report.json
 
-     - name: Upload ZAP artifact
-       uses: actions/upload-artifact@v4
-       with:
-         name: zap-report
-         path: zap-report.json
+      - name: Upload ZAP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: zap-report.json
   upload-zap:
     runs-on: self-hosted
     needs: zap-scan
