@@ -94,13 +94,20 @@ jobs:
       - name: Generate SBOM with Syft
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
+<<<<<<< HEAD
           ./bin/syft scan "ghcr.io/${{ github.repository }}:latest" -o json > sbom.json
 
+=======
+          ./bin/syft scan "ghcr.io/${{ github.repository }}:latest" -o json > sbom-report.json
+>>>>>>> ad0cfe4dfa6fe5d714c784626eaf4c918c880e77
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
           name: sbom-report
-          path: sbom.json
+          path: sbom-report.json
+      - name: Debug SBOM file
+        run: |
+          ls -la
       - name: Scan Docker image with trivy
         uses: aquasecurity/trivy-action@master
         with:
@@ -185,12 +192,40 @@ jobs:
     needs: deploy
 
     steps:
-      - name: OWASP ZAP Scan
-        uses: zaproxy/action-baseline@v0.10.0
-        with:
-          target: 'http://192.168.1.171:5000'
-      - name: Upload ZAP Report
+      - name: Run ZAP Scan 
+        continue-on-error: true
+        run: |
+         docker run --rm -u root \
+         -v ${{ github.workspace }}:/zap/wrk/:rw \
+         ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+         -t http://pull-printer-connected-folk.trycloudflare.com \
+         -x zap-report.xml  \
+         -r zap-report.html \
+         -J zap-report.json 
+         
+      - name: Upload ZAP artifact
         uses: actions/upload-artifact@v4
         with:
           name: zap-report
-          path: report_html.html
+          path: |
+            zap-report.xml
+            zap-report.html
+            zap-report.json
+  upload-zap:
+    runs-on: self-hosted
+    needs: zap-scan
+    
+    steps:
+     - name: Download ZAP report
+       uses: actions/download-artifact@v4
+       with:
+         name: zap-report
+
+     - name: Upload ZAP to DefectDojo
+       run: |
+         curl -X POST "http://localhost:8080/api/v2/import-scan/" \
+         -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+         -F "file=@zap-report.xml" \
+         -F "scan_type=ZAP Scan" \
+         -F "product_name=airline app" \
+         -F "engagement_name=pip"
