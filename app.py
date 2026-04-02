@@ -193,9 +193,9 @@ def login():
         conn = db()
         c = conn.cursor()
 
-        query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
+        query = "SELECT * FROM users WHERE username=? AND password=?"
 
-        user = c.execute(query).fetchone()
+        user = c.execute(query, (username, password)).fetchone()
 
         if user:
             session["user_id"] = user[0]
