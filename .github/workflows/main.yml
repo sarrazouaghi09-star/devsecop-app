@@ -201,7 +201,7 @@ jobs:
       - name: Debug files
         run: |
           echo "listing files"
-          ls-la
+          ls -la
          
       - name: Upload ZAP artifact
         uses: actions/upload-artifact@v4
