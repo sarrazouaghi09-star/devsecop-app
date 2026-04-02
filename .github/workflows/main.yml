@@ -94,12 +94,8 @@ jobs:
       - name: Generate SBOM with Syft
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
-<<<<<<< HEAD
           ./bin/syft scan "ghcr.io/${{ github.repository }}:latest" -o json > sbom.json
 
-=======
-          ./bin/syft scan "ghcr.io/${{ github.repository }}:latest" -o json > sbom-report.json
->>>>>>> ad0cfe4dfa6fe5d714c784626eaf4c918c880e77
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
@@ -136,7 +132,7 @@ jobs:
            docker pull ghcr.io/sarrazouaghi09-star/devsecop-app:latest
            docker stop devsecop-app || true
            docker rm devsecop-app || true
-           docker run -d -p 5000:5000 --name devsecop-app ghcr.io/sarrazouaghi09-star/devsecop-app:latest
+           docker run -d -p 5001:5000 --name devsecop-app ghcr.io/sarrazouaghi09-star/devsecop-app:latest
       - name: Download Bandit report
         uses: actions/download-artifact@v4
         with:
@@ -198,7 +194,7 @@ jobs:
          docker run --rm -u root \
          -v ${{ github.workspace }}:/zap/wrk/:rw \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-         -t http://pull-printer-connected-folk.trycloudflare.com \
+         -t https://worcester-edgar-psi-cited.trycloudflare.com \                                      | \
          -x zap-report.xml  \
          -r zap-report.html \
          -J zap-report.json 
