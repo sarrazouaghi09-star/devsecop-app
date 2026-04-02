@@ -196,8 +196,8 @@ jobs:
          -t http://liquid-supply-thank-whose.trycloudflare.com \
          -x zap-report.xml  \
          -r zap-report.html \
-         -J zap-report.json 
-         
+         -J zap-report.json
+
       - name: Upload ZAP artifact
         uses: actions/upload-artifact@v4
         with:
@@ -209,7 +209,7 @@ jobs:
   upload-zap:
     runs-on: self-hosted
     needs: zap-scan
-    
+
     steps:
      - name: Download ZAP report
        uses: actions/download-artifact@v4
