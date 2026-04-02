@@ -193,7 +193,7 @@ jobs:
          docker run --rm -u root \
          -v ${{ github.workspace }}:/zap/wrk/:rw \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-         -t http://artist-basketball-curtis-scores.trycloudflare.com \
+         -t https://pull-printer-connected-folk.trycloudflare.com \
          -x zap-report.xml  \
          -r zap-report.html \
          -J zap-report.json
