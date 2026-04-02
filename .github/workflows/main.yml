@@ -188,19 +188,21 @@ jobs:
 
     steps:
       - name: Run ZAP Scan 
+        continue-on-error: true
         run: |
          docker run --rm -u root \
          -v ${{ github.workspace }}:/zap/wrk/:rw \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
          -t http://liquid-supply-thank-whose.trycloudflare.com \
-         -J zap-report.json  \
-         -r zap-report.html || true
-
+         -x zap-report.xml  \
+         -r zap-report.html \
+         -J zap-report.json 
+         
       - name: Upload ZAP artifact
         uses: actions/upload-artifact@v4
         with:
           name: zap-report
-          path: zap-report.json
+          path: zap-report.xml
   upload-zap:
     runs-on: self-hosted
     needs: zap-scan
@@ -215,7 +217,7 @@ jobs:
        run: |
          curl -X POST "http://localhost:8080/api/v2/import-scan/" \
          -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
-         -F "file=@zap-report.json" \
+         -F "file=@zap-report.xml" \
          -F "scan_type=ZAP Scan" \
          -F "product_name=airline app" \
          -F "engagement_name=pip"
