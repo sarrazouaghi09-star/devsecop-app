@@ -183,7 +183,7 @@ jobs:
           -F "product_name=airline app" \
           -F "engagement_name=pip"
   zap-scan:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: deploy
 
     steps:
