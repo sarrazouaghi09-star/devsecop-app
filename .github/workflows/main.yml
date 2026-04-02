@@ -192,6 +192,7 @@ jobs:
         run: |
          docker run --rm -u root \
          -v ${{ github.workspace }}:/zap/wrk/:rw \
+         -w /zap/wrk \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
          -t https://workplace-subscribe-bare-configuring.trycloudflare.com \
          -x zap-report.xml  \
