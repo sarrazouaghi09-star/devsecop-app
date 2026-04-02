@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, session
+from flask_wtf import CSRFProtect
 import sqlite3
 import os
 import psutil
@@ -11,7 +12,7 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = "tunisair-operations-secret"
-
+csrf = CSRFProtect(app)
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 USER_PFP_FOLDER = os.path.join("static", "uploads", "users")
