@@ -193,7 +193,7 @@ jobs:
          docker run --rm -u root \
          -v ${{ github.workspace }}:/zap/wrk/:rw \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-         -t http://liquid-supply-thank-whose.trycloudflare.com \
+         -t http://devon-dried-hourly-duplicate.trycloudflare.com \
          -x zap-report.xml  \
          -r zap-report.html \
          -J zap-report.json
