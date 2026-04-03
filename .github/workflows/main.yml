@@ -195,7 +195,7 @@ jobs:
          -v ${{ github.workspace }}:/zap/wrk/:rw \
          -w /zap/wrk \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-         -t https://radio-responsible-inquiry-biodiversity.trycloudflare.com \
+         -t https://shadow-directories-readers-bbs.trycloudflare.com \
          -r zap-report.html \
          -x zap-report.xml || true
       - name: Debug files
