@@ -427,6 +427,7 @@ max-width:100%;
 
 <div class="users-panel-body">
 <form method="POST" action="/add-user" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <div class="mb-3" id="staffIdField" style="display: block;">
 <label class="form-label">User ID</label>
 <input type="text" name="staff_id" class="form-control" required>
@@ -530,12 +531,16 @@ max-width:100%;
 <td>
 <div class="user-actions">
 <form method="POST" action="/change-user-password/{{u[0]}}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input type="password" name="new_password" class="form-control form-control-sm" placeholder="New password" required>
 <button class="btn btn-outline-warning btn-sm" type="submit">Change Password</button>
 </form>
-<a href="/delete-user/{{u[0]}}" class="btn btn-danger btn-sm user-delete">
+<form method="POST" action="/delete-user/{{u[0]}}" style="display:inline-flex; align-items:center; gap:0; margin:0; min-width:auto; flex:0 0 auto; flex-wrap:nowrap;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit" class="btn btn-danger btn-sm user-delete">
 <i class="fa fa-trash"></i>
-</a>
+</button>
+</form>
 </div>
 </td>
 </tr>
