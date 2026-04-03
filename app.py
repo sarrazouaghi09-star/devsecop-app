@@ -165,7 +165,14 @@ def get_current_user_profile():
 
 @app.after_request
 def add_security_headers(response):
-    response.headers['Content-Security-Policy'] = "default-src 'self'"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://unpkg.com; "
+        "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+        "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
+        "img-src 'self' data: https://images.unsplash.com; "
+        "connect-src 'self' https://tile.openstreetmap.org; "
+    )
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-XSS-Protection'] = '1; mode=block'
@@ -239,7 +246,7 @@ def login():
     return render_template("login.html")
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["POST"])
 def logout():
     session.clear()
     return redirect("/login")
@@ -680,7 +687,7 @@ def update_flight_status(id):
 
     return redirect(next_page)
 
-@app.route("/delete-flight/<int:id>")
+@app.route("/delete-flight/<int:id>", methods=["POST"])
 def delete_flight(id):
 
     conn = sqlite3.connect("database.db")
@@ -761,7 +768,7 @@ def add_passenger():
     seat = request.form["seat"]
     
     if seat == "":
-        return "You must select a seat"
+        return redirect(f"/passengers?flight={flight_id}&error=seat_required")
 
     # passport validation
     if not passport.isdigit() or len(passport) != 8:
@@ -810,7 +817,7 @@ def add_passenger():
 
     return redirect(f"/passengers?flight={flight_id}")
 
-@app.route("/delete-passenger/<int:id>")
+@app.route("/delete-passenger/<int:id>", methods=["POST"])
 def delete_passenger(id):
 
     conn = sqlite3.connect("database.db")
@@ -824,7 +831,7 @@ def delete_passenger(id):
     conn.commit()
     conn.close()
 
-    selected_flight = request.args.get("flight", "").strip()
+    selected_flight = request.form.get("flight", "").strip()
 
     if selected_flight:
         return redirect(f"/passengers?flight={selected_flight}")
@@ -969,7 +976,7 @@ def add_baggage():
 
     return redirect("/baggage")
 
-@app.route("/delete-baggage/<int:id>")
+@app.route("/delete-baggage/<int:id>", methods=["POST"])
 def delete_baggage(id):
 
     conn = sqlite3.connect("database.db")
@@ -980,10 +987,10 @@ def delete_baggage(id):
     conn.commit()
     conn.close()
 
-    selected_flight = request.args.get("flight", "").strip()
-    selected_date = request.args.get("date", "").strip()
-    selected_end_date = request.args.get("end_date", "").strip()
-    filter_type = request.args.get("filter", "").strip()
+    selected_flight = request.form.get("flight", "").strip()
+    selected_date = request.form.get("date", "").strip()
+    selected_end_date = request.form.get("end_date", "").strip()
+    filter_type = request.form.get("filter", "").strip()
 
     params = []
     if selected_flight:
@@ -1477,7 +1484,7 @@ def change_user_password(id):
     return redirect("/users?password_status=success&password_message=Password%20updated%20successfully")
 
 
-@app.route("/delete-user/<int:id>")
+@app.route("/delete-user/<int:id>", methods=["POST"])
 def delete_user(id):
     if not current_user_is_admin():
         return redirect("/dashboard")
