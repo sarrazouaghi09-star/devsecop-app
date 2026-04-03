@@ -221,7 +221,7 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-         if not username:
+        if not username:
         return render_template("login.html", login_error="Username is required")
 
         import re
