@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session
 from flask_wtf import CSRFProtect
 import sqlite3
 import os
+import re
 import psutil
 import calendar
 from datetime import date
@@ -220,6 +221,12 @@ def login():
 
         username = request.form["username"]
         password = request.form["password"]
+
+        if not username:
+            return render_template("login.html", login_error="Username is required")
+
+        if not re.match(r"^[a-zA-Z0-9_]{3,30}$", username):
+            return render_template("login.html", login_error="Invalid username format")
 
         conn = db()
         c = conn.cursor()
