@@ -328,6 +328,7 @@ padding-right:18px;
 {% endif %}
 
 <form method="POST" action="/update-profile" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input type="hidden" name="user_id" value="{{ user.id }}">
 <input type="file" name="pfp" id="profilePfpInput" class="profile-pfp-input" accept="image/*" onchange="previewImage(event)">
 <div class="profile-grid">
