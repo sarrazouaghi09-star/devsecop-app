@@ -1006,10 +1006,13 @@ grid-template-columns:1fr;
 <i class="fa-solid fa-moon"></i>
 Dark Mode
 </button>
-<a href="/logout" class="header-menu-item logout-link">
+<form method="POST" action="/logout" style="display:block; margin:0;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit" class="header-menu-item logout-link">
 <i class="fa-solid fa-right-from-bracket"></i>
 Log Off
-</a>
+</button>
+</form>
 </div>
 </details>
 </div>
