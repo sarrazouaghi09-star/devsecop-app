@@ -742,10 +742,13 @@ border-left:none;
 <i class="fa-solid fa-moon"></i>
 Dark Mode
 </button>
-<a href="/logout" class="header-menu-item logout-link">
+<form method="POST" action="/logout" style="display:block; margin:0;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit" class="header-menu-item logout-link">
 <i class="fa-solid fa-right-from-bracket"></i>
 Log Off
-</a>
+</button>
+</form>
 </div>
 </details>
 </div>
@@ -811,6 +814,7 @@ Log Off
 {% endif %}
 
 <form method="POST" action="/add-baggage" id="baggageForm" novalidate>
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <div class="row g-3">
 <div class="col-md-6">
 <input class="form-control" name="tag" placeholder="Tag ID" required>
@@ -974,10 +978,14 @@ Log Off
 <td><span class="status-pill">{{ b[7] }}</span></td>
 <td><span class="location-pill">{{ b[8] }}</span></td>
 <td>
-<a href="/delete-baggage/{{b[0]}}{% if selected_flight or selected_date or selected_end_date or filter_type %}?{% endif %}{% if selected_flight %}flight={{selected_flight}}{% endif %}{% if selected_flight and (selected_date or selected_end_date or filter_type) %}&{% endif %}{% if selected_date %}date={{selected_date}}{% endif %}{% if selected_date and (selected_end_date or filter_type) %}&{% endif %}{% if selected_end_date %}end_date={{selected_end_date}}{% endif %}{% if selected_end_date and filter_type %}&{% endif %}{% if filter_type %}filter={{filter_type}}{% endif %}"
-class="btn btn-danger btn-sm delete-btn">
-Delete
-</a>
+<form method="POST" action="/delete-baggage/{{b[0]}}" style="display:inline-flex; margin:0;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% if selected_flight %}<input type="hidden" name="flight" value="{{ selected_flight }}">{% endif %}
+{% if selected_date %}<input type="hidden" name="date" value="{{ selected_date }}">{% endif %}
+{% if selected_end_date %}<input type="hidden" name="end_date" value="{{ selected_end_date }}">{% endif %}
+{% if filter_type %}<input type="hidden" name="filter" value="{{ filter_type }}">{% endif %}
+<button type="submit" class="btn btn-danger btn-sm delete-btn">Delete</button>
+</form>
 </td>
 </tr>
 {% endfor %}
