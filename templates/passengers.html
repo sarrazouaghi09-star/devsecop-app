@@ -172,6 +172,10 @@ align-items:center;
 gap:10px;
 text-decoration:none;
 text-align:left;
+appearance:none;
+-webkit-appearance:none;
+font:inherit;
+cursor:pointer;
 }
 
 .header-menu-item:hover{
@@ -393,6 +397,14 @@ flex:1 1 auto;
 border-radius:14px;
 padding:10px 14px;
 font-weight:600;
+}
+
+.header-menu-panel form{
+margin:0;
+}
+
+.header-menu-panel form .header-menu-item{
+width:100%;
 }
 
 .add-passenger-action{
@@ -631,10 +643,13 @@ padding-right:18px;
 <i class="fa-solid fa-moon"></i>
 Dark Mode
 </button>
-<a href="/logout" class="header-menu-item logout-link">
+<form method="POST" action="/logout" style="display:block; margin:0;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit" class="header-menu-item logout-link">
 <i class="fa-solid fa-right-from-bracket"></i>
 Log Off
-</a>
+</button>
+</form>
 </div>
 </details>
 </div>
@@ -681,9 +696,14 @@ Log Off
 <div class="alert alert-danger mb-4" role="alert">
 wrong passpord number
 </div>
+{% elif request.args.get("error") == "seat_required" %}
+<div class="alert alert-danger mb-4" role="alert">
+You must select a seat
+</div>
 {% endif %}
 
-<form method="POST" action="/add-passenger">
+<form method="POST" action="/add-passenger" id="addPassengerForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <div class="row g-3">
 <div class="col-md-12">
 <input class="form-control"
@@ -795,10 +815,13 @@ Reset
 <td><span class="flight-pill">{{ p[3] }}</span></td>
 <td><span class="seat-pill">{{ p[4] }}</span></td>
 <td>
-<a href="/delete-passenger/{{p[0]}}{% if selected_flight %}?flight={{selected_flight}}{% endif %}"
-class="btn btn-danger btn-sm delete-btn">
+<form method="POST" action="/delete-passenger/{{p[0]}}" style="display:inline-flex; margin:0;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% if selected_flight %}<input type="hidden" name="flight" value="{{ selected_flight }}">{% endif %}
+<button type="submit" class="btn btn-danger btn-sm delete-btn">
 <i class="fa-solid fa-trash"></i>
-</a>
+</button>
+</form>
 </td>
 </tr>
 {% endfor %}
@@ -826,6 +849,7 @@ const flightSelect = document.querySelector("select[name='flight']")
 const map = document.getElementById("seatMap")
 const seatInput = document.getElementById("seatInput")
 const seatAlert = document.getElementById("seatAlert")
+const addPassengerForm = document.getElementById("addPassengerForm")
 
 const seats = [
 "A1","A2","A3","A4","A5",
@@ -896,6 +920,13 @@ map.appendChild(seatContainer)
 }
 
 flightSelect.addEventListener("change", renderSeats)
+
+addPassengerForm.addEventListener("submit", (event) => {
+if(!seatInput.value){
+event.preventDefault()
+seatAlert.style.display = "block"
+}
+})
 
 renderSeats()
 
