@@ -319,6 +319,7 @@ grid-template-columns:1fr;
 Please select both passport and CIN files before uploading.
 </div>
 <form method="POST" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <div class="doc-grid">
 <label class="doc-box">
 <i class="fa fa-passport fa-3x text-danger"></i>
