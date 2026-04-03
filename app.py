@@ -3,11 +3,13 @@ from flask_wtf import CSRFProtect
 import sqlite3
 import os
 import re
+from uuid import uuid4
 from urllib.parse import urlencode
 import psutil
 import calendar
 from datetime import date
 from datetime import datetime, timedelta
+from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -17,8 +19,20 @@ app.secret_key = "tunisair-operations-secret"
 csrf = CSRFProtect(app)
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+# SECURITY FIX: limit total request upload size to reduce abuse and oversized file attacks.
+app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 USER_PFP_FOLDER = os.path.join("static", "uploads", "users")
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+# SECURITY FIX: only allow expected upload extensions for user-provided files.
+ALLOWED_UPLOAD_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | {"pdf"}
+ALLOWED_IMAGE_MIME_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/webp",
+}
+# SECURITY FIX: use MIME validation as an extra defense in depth.
+ALLOWED_UPLOAD_MIME_TYPES = ALLOWED_IMAGE_MIME_TYPES | {"application/pdf"}
 ALLOWED_USER_SCHEMA_COLUMNS = ("name", "email", "phone", "staff_id", "department")
 SAFE_TEXT_PATTERN = re.compile(r"^[A-Za-z0-9\s@._:/#,+()\-]{1,100}$")
 USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]{3,30}$")
@@ -169,6 +183,57 @@ def safe_query_message(value, max_length=120):
         return ""
 
 
+# SECURITY FIX: extract extensions from sanitized names only and never trust raw path fragments.
+def get_file_extension(filename):
+    sanitized_name = secure_filename(filename or "")
+    if "." not in sanitized_name:
+        return ""
+    return sanitized_name.rsplit(".", 1)[1].lower()
+
+
+def allowed_file_extension(filename, allowed_extensions):
+    return get_file_extension(filename) in allowed_extensions
+
+
+def allowed_mime_type(file_storage, allowed_mime_types):
+    return (file_storage.mimetype or "").lower() in allowed_mime_types
+
+
+# SECURITY FIX: generate unique server-side filenames to prevent overwrite and path traversal attacks.
+def build_unique_filename(original_filename, prefix="upload"):
+    sanitized_original = secure_filename(original_filename or "")
+    extension = get_file_extension(sanitized_original)
+    safe_prefix = secure_filename(prefix or "upload") or "upload"
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    unique_suffix = uuid4().hex
+
+    if extension:
+        return f"{safe_prefix}_{timestamp}_{unique_suffix}.{extension}"
+
+    return f"{safe_prefix}_{timestamp}_{unique_suffix}"
+
+
+# SECURITY FIX: centralize upload validation and saving so every file path gets the same protections.
+def save_uploaded_file(file_storage, target_dir, allowed_extensions, allowed_mime_types, prefix="upload"):
+    if not file_storage:
+        return "", "No file uploaded."
+
+    original_filename = (file_storage.filename or "").strip()
+    if not original_filename:
+        return "", "No file selected."
+
+    if not allowed_file_extension(original_filename, allowed_extensions):
+        return "", "Invalid file type. Only images and PDF files are allowed."
+
+    if allowed_mime_types and not allowed_mime_type(file_storage, allowed_mime_types):
+        return "", "Invalid file type. Only images and PDF files are allowed."
+
+    os.makedirs(target_dir, exist_ok=True)
+    filename = build_unique_filename(original_filename, prefix=prefix)
+    file_storage.save(os.path.join(target_dir, filename))
+    return filename, ""
+
+
 def db():
     return sqlite3.connect("database.db")
 
@@ -230,17 +295,15 @@ def allowed_image(filename):
 
 
 def save_user_profile_image(file_storage, username):
-    if not file_storage or not file_storage.filename:
-        return ""
-
-    if not allowed_image(file_storage.filename):
-        return ""
-
-    safe_name = secure_filename(username or "user")
-    extension = file_storage.filename.rsplit(".", 1)[1].lower()
-    filename = f"{safe_name}_{int(datetime.now().timestamp())}.{extension}"
-    os.makedirs(USER_PFP_FOLDER, exist_ok=True)
-    file_storage.save(os.path.join(USER_PFP_FOLDER, filename))
+    # SECURITY FIX: profile images use the centralized safe upload pipeline.
+    safe_name = secure_filename(username or "user") or "user"
+    filename, _ = save_uploaded_file(
+        file_storage,
+        USER_PFP_FOLDER,
+        ALLOWED_IMAGE_EXTENSIONS,
+        ALLOWED_IMAGE_MIME_TYPES,
+        prefix=safe_name
+    )
     return filename
 
 
@@ -366,6 +429,12 @@ def inject_admin_profile():
 
 
 ensure_user_profile_schema()
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_file_too_large(error):
+    # SECURITY FIX: return a safe message instead of leaking framework internals on oversized uploads.
+    return "File too large. Maximum allowed size is 8 MB.", 413
 
 
 @app.route("/")
@@ -1232,17 +1301,33 @@ def upload():
         return redirect("/dashboard")
 
     if request.method == "POST":
+        # SECURITY FIX: fetch files safely and validate presence before saving.
+        passport = request.files.get("passport")
+        cin = request.files.get("cin")
 
-        passport = request.files["passport"]
-        cin = request.files["cin"]
+        passport_filename, passport_error = save_uploaded_file(
+            passport,
+            app.config["UPLOAD_FOLDER"],
+            ALLOWED_UPLOAD_EXTENSIONS,
+            ALLOWED_UPLOAD_MIME_TYPES,
+            prefix="passport"
+        )
+        if passport_error:
+            return passport_error
 
-        os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-
-        path = os.path.join(app.config["UPLOAD_FOLDER"], passport.filename)
-        passport.save(path)
-
-        path = os.path.join(app.config["UPLOAD_FOLDER"], cin.filename)
-        cin.save(path)
+        cin_filename, cin_error = save_uploaded_file(
+            cin,
+            app.config["UPLOAD_FOLDER"],
+            ALLOWED_UPLOAD_EXTENSIONS,
+            ALLOWED_UPLOAD_MIME_TYPES,
+            prefix="cin"
+        )
+        if cin_error:
+            if passport_filename:
+                passport_path = os.path.join(app.config["UPLOAD_FOLDER"], passport_filename)
+                if os.path.exists(passport_path):
+                    os.remove(passport_path)
+            return cin_error
 
         return "File uploaded"
 
