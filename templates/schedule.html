@@ -367,6 +367,7 @@ width:100%;
 {% if editable %}
 <td>
 <form method="POST" action="/update-flight-status/{{ f[0] }}" class="schedule-status-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input type="hidden" name="next" value="/flight-status">
 <select name="status">
 <option value="On Time" {% if f[6] == "On Time" %}selected{% endif %}>On Time</option>
