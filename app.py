@@ -3,6 +3,7 @@ from flask_wtf import CSRFProtect
 import sqlite3
 import os
 import re
+from urllib.parse import urlencode
 import psutil
 import calendar
 from datetime import date
@@ -18,6 +19,154 @@ UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 USER_PFP_FOLDER = os.path.join("static", "uploads", "users")
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+ALLOWED_USER_SCHEMA_COLUMNS = ("name", "email", "phone", "staff_id", "department")
+SAFE_TEXT_PATTERN = re.compile(r"^[A-Za-z0-9\s@._:/#,+()\-]{1,100}$")
+USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]{3,30}$")
+FLIGHT_NUMBER_PATTERN = re.compile(r"^[A-Z0-9-]{2,20}$")
+GATE_PATTERN = re.compile(r"^[A-Z][0-9]{1,2}$")
+SEAT_PATTERN = re.compile(r"^[A-Z][0-9]{1,2}$")
+PASSPORT_PATTERN = re.compile(r"^[0-9]{8}$")
+TAG_PATTERN = re.compile(r"^[A-Za-z0-9_-]{2,30}$")
+PHONE_PATTERN = re.compile(r"^[0-9]{8}$")
+STAFF_ID_PATTERN = re.compile(r"^[A-Za-z0-9-]{1,30}$")
+EMAIL_PATTERN = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+SQLI_PATTERN = re.compile(
+    r"(--|/\*|\*/|;|\b(select|union|drop|insert|delete|update|alter|pragma|attach|detach)\b)",
+    re.IGNORECASE
+)
+FLIGHT_STATUS_CHOICES = {"On Time", "Boarding", "Delayed", "Cancelled"}
+BAGGAGE_STATUS_CHOICES = {"Loaded", "In Transit", "Delayed", "Arrived", "Checked In"}
+ROLE_CHOICES = {"admin", "staff"}
+FILTER_TYPE_CHOICES = {"day", "week", "month", "year"}
+
+
+# SECURITY FIX: central validation helpers keep SQL inputs constrained before any query runs.
+def has_malicious_pattern(value):
+    return bool(value and SQLI_PATTERN.search(value))
+
+
+# SECURITY FIX: generic safe text validator for names, cities, and other free-text fields.
+def safe_text(value, field_name="field", allow_empty=True, max_length=100, pattern=SAFE_TEXT_PATTERN):
+    value = (value or "").strip()
+
+    if not value:
+        if allow_empty:
+            return ""
+        raise ValueError(f"{field_name} is required")
+
+    if len(value) > max_length:
+        raise ValueError(f"{field_name} is too long")
+
+    if has_malicious_pattern(value) or not pattern.fullmatch(value):
+        raise ValueError(f"Invalid {field_name}")
+
+    return value
+
+
+# SECURITY FIX: ids are normalized to positive integers before being used in queries.
+def safe_id(value, field_name="id", allow_empty=False):
+    value = str(value or "").strip()
+
+    if not value:
+        if allow_empty:
+            return None
+        raise ValueError(f"{field_name} is required")
+
+    if not re.fullmatch(r"[0-9]+", value):
+        raise ValueError(f"Invalid {field_name}")
+
+    parsed_value = int(value)
+    if parsed_value <= 0:
+        raise ValueError(f"Invalid {field_name}")
+
+    return parsed_value
+
+
+# SECURITY FIX: LIKE filters escape wildcard characters so users cannot widen matches with % or _.
+def escape_like_value(value):
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def safe_like_text(value, field_name="field", max_length=100):
+    sanitized = safe_text(value, field_name=field_name, allow_empty=True, max_length=max_length)
+    if not sanitized:
+        return ""
+    return f"%{escape_like_value(sanitized)}%"
+
+
+# SECURITY FIX: choices are whitelisted so input cannot influence SQL structure or logic branches.
+def safe_choice(value, choices, default=None, field_name="field", allow_empty=False):
+    value = (value or "").strip()
+
+    if not value:
+        if allow_empty:
+            return ""
+        if default is not None:
+            return default
+        raise ValueError(f"{field_name} is required")
+
+    if value not in choices:
+        if default is not None:
+            return default
+        raise ValueError(f"Invalid {field_name}")
+
+    return value
+
+
+def safe_date_value(value, field_name="date", allow_empty=True):
+    value = (value or "").strip()
+
+    if not value:
+        if allow_empty:
+            return ""
+        raise ValueError(f"{field_name} is required")
+
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").strftime("%Y-%m-%d")
+    except ValueError as error:
+        raise ValueError(f"Invalid {field_name}") from error
+
+
+def safe_datetime_local(value, field_name="datetime", allow_empty=False):
+    value = (value or "").strip()
+
+    if not value:
+        if allow_empty:
+            return ""
+        raise ValueError(f"{field_name} is required")
+
+    try:
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M").strftime("%Y-%m-%dT%H:%M")
+    except ValueError as error:
+        raise ValueError(f"Invalid {field_name}") from error
+
+
+def safe_username(value, allow_empty=False):
+    value = (value or "").strip()
+
+    if not value:
+        if allow_empty:
+            return ""
+        raise ValueError("Username is required")
+
+    if has_malicious_pattern(value) or not USERNAME_PATTERN.fullmatch(value):
+        raise ValueError("Invalid username format")
+
+    return value
+
+
+def safe_redirect_path(value, default="/flights"):
+    value = (value or "").strip()
+    if value.startswith("/") and "://" not in value and "\\" not in value:
+        return value
+    return default
+
+
+def safe_query_message(value, max_length=120):
+    try:
+        return safe_text(value, field_name="message", allow_empty=True, max_length=max_length)
+    except ValueError:
+        return ""
 
 
 def db():
@@ -52,9 +201,19 @@ def ensure_user_profile_schema():
         cursor.execute("ALTER TABLE users ADD COLUMN pfp TEXT")
         conn.commit()
 
-    for column_name in ["name", "email", "phone", "staff_id", "department"]:
+    # SECURITY FIX: use a static whitelist for schema changes instead of string-built SQL from variables.
+    for column_name in ALLOWED_USER_SCHEMA_COLUMNS:
         if column_name not in columns:
-            cursor.execute(f"ALTER TABLE users ADD COLUMN {column_name} TEXT")
+            if column_name == "name":
+                cursor.execute("ALTER TABLE users ADD COLUMN name TEXT")
+            elif column_name == "email":
+                cursor.execute("ALTER TABLE users ADD COLUMN email TEXT")
+            elif column_name == "phone":
+                cursor.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+            elif column_name == "staff_id":
+                cursor.execute("ALTER TABLE users ADD COLUMN staff_id TEXT")
+            elif column_name == "department":
+                cursor.execute("ALTER TABLE users ADD COLUMN department TEXT")
             conn.commit()
 
     try:
@@ -171,8 +330,8 @@ def add_security_headers(response):
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://unpkg.com; "
         "script-src 'self' 'unsafe-inline' https://unpkg.com; "
         "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
-        "img-src 'self' data: https://images.unsplash.com; "
-        "connect-src 'self' https://tile.openstreetmap.org; "
+        "img-src 'self' data: https://images.unsplash.com https://flagcdn.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://unpkg.com; "
+        "connect-src 'self' https://tile.openstreetmap.org https://*.tile.openstreetmap.org; "
     )
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -222,11 +381,11 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        if not username:
-            return render_template("login.html", login_error="Username is required")
-
-        if not re.match(r"^[a-zA-Z0-9_]{3,30}$", username):
-            return render_template("login.html", login_error="Invalid username format")
+        try:
+            # SECURITY FIX: validate username before it reaches authentication queries.
+            username = safe_username(username)
+        except ValueError as error:
+            return render_template("login.html", login_error=str(error))
 
         conn = db()
         c = conn.cursor()
@@ -271,7 +430,7 @@ def edit_profile():
         user=user,
         role_editable=current_user_is_admin(),
         profile_error="",
-        profile_success=request.args.get("updated", "") == "1"
+        profile_success=safe_query_message(request.args.get("updated", ""), max_length=1) == "1"
     )
 
 
@@ -282,12 +441,31 @@ def update_profile():
     if not user:
         return redirect("/login")
 
-    name = request.form.get("name", "").strip()
-    email = request.form.get("email", "").strip()
-    phone = request.form.get("phone", "").replace(" ", "").strip()
-    staff_id = request.form.get("staff_id", "").strip()
-    department = request.form.get("department", "").strip()
-    requested_role = request.form.get("role", user["role"]).strip() or user["role"]
+    try:
+        # SECURITY FIX: validate all editable profile fields before persisting or querying.
+        name = safe_text(request.form.get("name", ""), field_name="name", allow_empty=False)
+        email = safe_text(request.form.get("email", ""), field_name="email", allow_empty=True, max_length=100, pattern=EMAIL_PATTERN) if request.form.get("email", "").strip() else ""
+        phone = request.form.get("phone", "").replace(" ", "").strip()
+        staff_id = safe_text(request.form.get("staff_id", ""), field_name="staff ID", allow_empty=False, max_length=30, pattern=STAFF_ID_PATTERN)
+        department = safe_text(request.form.get("department", ""), field_name="department", allow_empty=True, max_length=60)
+        requested_role = safe_choice(request.form.get("role", user["role"]), ROLE_CHOICES, default=user["role"], field_name="role")
+    except ValueError as error:
+        user.update({
+            "name": request.form.get("name", "").strip() or user["name"],
+            "email": request.form.get("email", "").strip(),
+            "phone": request.form.get("phone", "").replace(" ", "").strip(),
+            "staff_id": request.form.get("staff_id", "").strip(),
+            "department": request.form.get("department", "").strip(),
+            "role": request.form.get("role", user["role"]).strip() or user["role"]
+        })
+        return render_template(
+            "edit_profile.html",
+            user=user,
+            role_editable=current_user_is_admin(),
+            profile_error=str(error),
+            profile_success=False
+        )
+
     new_password = request.form.get("new_password", "")
     confirm_password = request.form.get("confirm_password", "")
     pfp_file = request.files.get("pfp")
@@ -310,7 +488,7 @@ def update_profile():
                 profile_success=False
             )
 
-    if phone and (not phone.isdigit() or len(phone) != 8):
+    if phone and not PHONE_PATTERN.fullmatch(phone):
         user.update({
             "name": name or user["name"],
             "email": email,
@@ -643,11 +821,16 @@ def flights_dashboard():
 @app.route("/add-flight", methods=["POST"])
 def add_flight():
 
-    flight = request.form["flight"].strip()
-    departure = request.form["departure"]
-    destination = request.form["destination"]
-    gate = request.form["gate"]
-    time = request.form["time"]
+    try:
+        # SECURITY FIX: validate flight fields and normalize them before query/insert usage.
+        flight = safe_text(request.form["flight"].upper(), field_name="flight number", allow_empty=False, max_length=20, pattern=FLIGHT_NUMBER_PATTERN)
+        departure = safe_text(request.form["departure"], field_name="departure", allow_empty=False, max_length=60)
+        destination = safe_text(request.form["destination"], field_name="destination", allow_empty=False, max_length=60)
+        gate = safe_text(request.form["gate"].upper(), field_name="gate", allow_empty=False, max_length=3, pattern=GATE_PATTERN)
+        time = safe_datetime_local(request.form["time"], field_name="time")
+    except ValueError:
+        return redirect("/flights")
+
     status = "On Time"
 
     conn = sqlite3.connect("database.db")
@@ -677,11 +860,13 @@ def add_flight():
 @app.route("/update-flight-status/<int:id>", methods=["POST"])
 def update_flight_status(id):
 
-    status = request.form["status"]
-    next_page = request.form.get("next", "/flights").strip()
+    try:
+        # SECURITY FIX: whitelist status values and sanitize redirect targets.
+        status = safe_choice(request.form["status"], FLIGHT_STATUS_CHOICES, field_name="status")
+    except ValueError:
+        return redirect("/flights")
 
-    if not next_page.startswith("/"):
-        next_page = "/flights"
+    next_page = safe_redirect_path(request.form.get("next", "/flights"), default="/flights")
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -716,8 +901,15 @@ def passengers():
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-    selected_flight = request.args.get("flight", "").strip()
-    selected_name = request.args.get("name", "").strip()
+    try:
+        # SECURITY FIX: sanitize query filters before building static WHERE clauses.
+        selected_flight_id = safe_id(request.args.get("flight", ""), field_name="flight", allow_empty=True)
+        selected_name = safe_text(request.args.get("name", ""), field_name="name", allow_empty=True, max_length=60)
+    except ValueError:
+        selected_flight_id = None
+        selected_name = ""
+
+    selected_flight = str(selected_flight_id) if selected_flight_id else ""
 
     # flights list for dropdown
     cursor.execute("SELECT id, flight_number, departure, destination, gate FROM flights")
@@ -738,11 +930,11 @@ def passengers():
     
     if selected_flight:
         conditions.append("flights.id = ?")
-        params.append(selected_flight)
+        params.append(selected_flight_id)
     
     if selected_name:
-        conditions.append("passengers.name LIKE ?")
-        params.append(f"%{selected_name}%")
+        conditions.append("passengers.name LIKE ? ESCAPE '\\'")
+        params.append(safe_like_text(selected_name, field_name="name", max_length=60))
     
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
@@ -769,17 +961,17 @@ def passengers():
 @app.route("/add-passenger", methods=["POST"])
 def add_passenger():
 
-    name = request.form["name"]
-    passport = request.form["passport"]
-    flight_id = request.form["flight"]
-    seat = request.form["seat"]
+    try:
+        # SECURITY FIX: validate passenger form fields before any passenger queries run.
+        name = safe_text(request.form["name"], field_name="name", allow_empty=False, max_length=60)
+        passport = safe_text(request.form["passport"], field_name="passport", allow_empty=False, max_length=8, pattern=PASSPORT_PATTERN)
+        flight_id = safe_id(request.form["flight"], field_name="flight")
+        seat = safe_text(request.form["seat"].upper(), field_name="seat", allow_empty=True, max_length=3, pattern=SEAT_PATTERN)
+    except ValueError:
+        return redirect("/passengers")
     
     if seat == "":
         return redirect(f"/passengers?flight={flight_id}&error=seat_required")
-
-    # passport validation
-    if not passport.isdigit() or len(passport) != 8:
-        return "Passport must contain exactly 8 digits"
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -838,10 +1030,13 @@ def delete_passenger(id):
     conn.commit()
     conn.close()
 
-    selected_flight = request.form.get("flight", "").strip()
+    try:
+        selected_flight_id = safe_id(request.form.get("flight", ""), field_name="flight", allow_empty=True)
+    except ValueError:
+        selected_flight_id = None
 
-    if selected_flight:
-        return redirect(f"/passengers?flight={selected_flight}")
+    if selected_flight_id:
+        return redirect(f"/passengers?flight={selected_flight_id}")
 
     return redirect("/passengers")
 
@@ -850,10 +1045,19 @@ def baggage():
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-    selected_flight = request.args.get("flight", "").strip()
-    selected_date = request.args.get("date", "").strip()
-    selected_end_date = request.args.get("end_date", "").strip()
-    filter_type = request.args.get("filter", "day").strip() or "day"
+    try:
+        # SECURITY FIX: normalize baggage filters before they influence query conditions.
+        selected_flight_id = safe_id(request.args.get("flight", ""), field_name="flight", allow_empty=True)
+        selected_date = safe_date_value(request.args.get("date", ""), field_name="date", allow_empty=True)
+        selected_end_date = safe_date_value(request.args.get("end_date", ""), field_name="end date", allow_empty=True)
+        filter_type = safe_choice(request.args.get("filter", "day"), FILTER_TYPE_CHOICES, default="day", field_name="filter")
+    except ValueError:
+        selected_flight_id = None
+        selected_date = ""
+        selected_end_date = ""
+        filter_type = "day"
+
+    selected_flight = str(selected_flight_id) if selected_flight_id else ""
     filter_error = ""
 
     cursor.execute("SELECT id, name, flight_id FROM passengers")
@@ -882,7 +1086,7 @@ def baggage():
 
     if selected_flight:
         query += " WHERE flights.id = ?"
-        params.append(selected_flight)
+        params.append(selected_flight_id)
 
     if selected_date:
         start_date = datetime.strptime(selected_date, "%Y-%m-%d")
@@ -929,12 +1133,13 @@ def baggage():
     
 @app.route("/add-baggage", methods=["POST"])
 def add_baggage():
-    tag = request.form.get("tag", "").strip()
-    passenger_id = request.form.get("passenger_id", "").strip()
-    flight_id = request.form.get("flight_id", "").strip()
-    status = request.form.get("status", "").strip()
-
-    if not tag or not passenger_id or not flight_id or not status:
+    try:
+        # SECURITY FIX: baggage input is validated centrally before any database access.
+        tag = safe_text(request.form.get("tag", ""), field_name="tag", allow_empty=False, max_length=30, pattern=TAG_PATTERN).upper()
+        passenger_id = safe_id(request.form.get("passenger_id", ""), field_name="passenger")
+        flight_id = safe_id(request.form.get("flight_id", ""), field_name="flight")
+        status = safe_choice(request.form.get("status", ""), BAGGAGE_STATUS_CHOICES, field_name="status")
+    except ValueError:
         return redirect("/baggage?error=missing_fields")
 
     try:
@@ -994,23 +1199,29 @@ def delete_baggage(id):
     conn.commit()
     conn.close()
 
-    selected_flight = request.form.get("flight", "").strip()
-    selected_date = request.form.get("date", "").strip()
-    selected_end_date = request.form.get("end_date", "").strip()
-    filter_type = request.form.get("filter", "").strip()
+    try:
+        selected_flight_id = safe_id(request.form.get("flight", ""), field_name="flight", allow_empty=True)
+        selected_date = safe_date_value(request.form.get("date", ""), field_name="date", allow_empty=True)
+        selected_end_date = safe_date_value(request.form.get("end_date", ""), field_name="end date", allow_empty=True)
+        filter_type = safe_choice(request.form.get("filter", ""), FILTER_TYPE_CHOICES, default="", field_name="filter", allow_empty=True)
+    except ValueError:
+        selected_flight_id = None
+        selected_date = ""
+        selected_end_date = ""
+        filter_type = ""
 
-    params = []
-    if selected_flight:
-        params.append(f"flight={selected_flight}")
+    params = {}
+    if selected_flight_id:
+        params["flight"] = selected_flight_id
     if selected_date:
-        params.append(f"date={selected_date}")
+        params["date"] = selected_date
     if selected_end_date:
-        params.append(f"end_date={selected_end_date}")
+        params["end_date"] = selected_end_date
     if filter_type:
-        params.append(f"filter={filter_type}")
+        params["filter"] = filter_type
 
     if params:
-        return redirect("/baggage?" + "&".join(params))
+        return redirect("/baggage?" + urlencode(params))
 
     return redirect("/baggage")
 
@@ -1040,8 +1251,17 @@ def upload():
 @app.route("/search-flights", methods=["POST"])
 def search_flights():
 
-    departure = request.form["departure"]
-    destination = request.form["destination"]
+    try:
+        # SECURITY FIX: sanitize LIKE search terms and escape wildcards before querying.
+        departure = safe_text(request.form["departure"], field_name="departure", allow_empty=True, max_length=60)
+        destination = safe_text(request.form["destination"], field_name="destination", allow_empty=True, max_length=60)
+        departure_like = safe_like_text(departure, field_name="departure", max_length=60)
+        destination_like = safe_like_text(destination, field_name="destination", max_length=60)
+    except ValueError:
+        departure = ""
+        destination = ""
+        departure_like = "%"
+        destination_like = "%"
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -1049,9 +1269,9 @@ def search_flights():
     cursor.execute("""
     SELECT id, flight_number, departure, destination, gate, time, status
     FROM flights
-    WHERE departure LIKE ?
-    AND destination LIKE ?
-    """, ("%"+departure+"%", "%"+destination+"%"))
+    WHERE departure LIKE ? ESCAPE '\'
+    AND destination LIKE ? ESCAPE '\'
+    """, (departure_like or "%", destination_like or "%"))
 
     flights = cursor.fetchall()
 
@@ -1111,11 +1331,27 @@ def search_flights():
 @app.route("/filter-flights", methods=["POST"])
 def filter_flights():
 
-    departure = request.form["departure"]
-    destination = request.form["destination"]
-    selected_date = request.form["date"]
-    selected_end_date = request.form.get("end_date", "")
-    filter_type = request.form["filter"]
+    try:
+        # SECURITY FIX: validate filter form values before they reach SQL or date logic.
+        departure = safe_text(request.form["departure"], field_name="departure", allow_empty=True, max_length=60)
+        destination = safe_text(request.form["destination"], field_name="destination", allow_empty=True, max_length=60)
+        selected_date = safe_date_value(request.form["date"], field_name="date", allow_empty=True)
+        selected_end_date = safe_date_value(request.form.get("end_date", ""), field_name="end date", allow_empty=True)
+        filter_type = safe_choice(request.form["filter"], FILTER_TYPE_CHOICES, default="day", field_name="filter")
+        departure_like = safe_like_text(departure, field_name="departure", max_length=60)
+        destination_like = safe_like_text(destination, field_name="destination", max_length=60)
+    except ValueError:
+        return render_template(
+            "search_results.html",
+            results=[],
+            departure="",
+            destination="",
+            selected_date="",
+            selected_end_date="",
+            filter_type="day",
+            filter_error="Invalid search filters.",
+            filter_summary=""
+        )
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -1123,11 +1359,11 @@ def filter_flights():
     query = """
     SELECT id, flight_number, departure, destination, gate, time, status
     FROM flights
-    WHERE departure LIKE ?
-    AND destination LIKE ?
+    WHERE departure LIKE ? ESCAPE '\'
+    AND destination LIKE ? ESCAPE '\'
     """
 
-    params = ["%"+departure+"%", "%"+destination+"%"]
+    params = [departure_like or "%", destination_like or "%"]
 
     if selected_date:
         start_date = datetime.strptime(selected_date, "%Y-%m-%d")
@@ -1282,8 +1518,12 @@ def delays():
 @app.route("/update-delay", methods=["POST"])
 def update_delay():
 
-    flight_id = request.form["id"]
-    new_time = request.form["new_time"]
+    try:
+        # SECURITY FIX: validate delay update fields before running the update query.
+        flight_id = safe_id(request.form["id"], field_name="flight")
+        new_time = safe_datetime_local(request.form["new_time"], field_name="time")
+    except ValueError:
+        return redirect("/delays")
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -1402,8 +1642,8 @@ def users():
     return render_template(
         "users.html",
         users=users,
-        password_status=request.args.get("password_status", "").strip(),
-        password_message=request.args.get("password_message", "").strip()
+        password_status=safe_query_message(request.args.get("password_status", ""), max_length=20),
+        password_message=safe_query_message(request.args.get("password_message", ""), max_length=120)
     )
 
 
@@ -1412,9 +1652,14 @@ def add_user():
     if not current_user_is_admin():
         return redirect("/dashboard")
 
-    username = request.form["username"]
+    try:
+        # SECURITY FIX: validate admin-created user data before insertion.
+        username = safe_username(request.form["username"])
+        role = safe_choice(request.form.get("role", "staff"), ROLE_CHOICES, default="staff", field_name="role")
+    except ValueError:
+        return redirect("/users")
+
     password = request.form["password"]
-    role = request.form.get("role", "staff")
     pfp_file = request.files.get("pfp")
     pfp_filename = save_user_profile_image(pfp_file, username)
 
@@ -1534,8 +1779,15 @@ def seats():
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-    selected_flight = request.args.get("flight", "").strip()
-    selected_name = request.args.get("name", "").strip()
+    try:
+        # SECURITY FIX: sanitize seat page filters before adding them to a static query.
+        selected_flight_id = safe_id(request.args.get("flight", ""), field_name="flight", allow_empty=True)
+        selected_name = safe_text(request.args.get("name", ""), field_name="name", allow_empty=True, max_length=60)
+    except ValueError:
+        selected_flight_id = None
+        selected_name = ""
+
+    selected_flight = str(selected_flight_id) if selected_flight_id else ""
 
     cursor.execute("SELECT id, flight_number FROM flights")
     flights = cursor.fetchall()
@@ -1554,11 +1806,11 @@ def seats():
     
     if selected_flight:
         conditions.append("flights.id = ?")
-        params.append(selected_flight)
+        params.append(selected_flight_id)
     
     if selected_name:
-        conditions.append("passengers.name LIKE ?")
-        params.append(f"%{selected_name}%")
+        conditions.append("passengers.name LIKE ? ESCAPE '\\'")
+        params.append(safe_like_text(selected_name, field_name="name", max_length=60))
     
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
