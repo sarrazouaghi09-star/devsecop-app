@@ -181,6 +181,7 @@ background:#111827;
 <div class="card shadow p-4 mb-4 filter-card">
 
 <form method="POST" action="/filter-flights">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 <input type="hidden" name="departure" value="{{ departure }}">
 <input type="hidden" name="destination" value="{{ destination }}">
