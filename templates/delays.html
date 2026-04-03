@@ -411,6 +411,7 @@ width:100%;
 <td><span class="status-pill">{{ f[4] }}</span></td>
 <td>
 <form method="POST" action="/update-delay" class="delay-update-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input type="hidden" name="id" value="{{ f[0] }}">
 <input type="datetime-local" name="new_time" required>
 <button class="delay-update-btn" type="submit">
@@ -420,9 +421,12 @@ width:100%;
 </td>
 <td>
 <div class="delay-actions">
-<a href="/delete-flight/{{ f[0] }}" class="delay-delete-btn" title="Delete flight">
+<form method="POST" action="/delete-flight/{{ f[0] }}" style="display:inline-flex; margin:0; flex:0 0 auto;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit" class="delay-delete-btn" title="Delete flight">
 <i class="fa fa-trash"></i>
-</a>
+</button>
+</form>
 </div>
 </td>
 </tr>
