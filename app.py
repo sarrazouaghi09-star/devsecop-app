@@ -15,6 +15,9 @@ from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = True
 app.secret_key = "tunisair-operations-secret"
 csrf = CSRFProtect(app)
 UPLOAD_FOLDER = "uploads"
@@ -1915,4 +1918,5 @@ def seats():
 
 
 if __name__ == "__main__":
+    app.config["SESSION_COOKIE_SECURE"] = False
     app.run(host="0.0.0.0", port=5000, debug=True)
