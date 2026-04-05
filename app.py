@@ -1916,7 +1916,9 @@ def seats():
         selected_name=selected_name
     )
 
-
 if __name__ == "__main__":
-    app.config["SESSION_COOKIE_SECURE"] = False
+    if os.environ.get("FLASK_ENV") == "development":
+        app.config["SESSION_COOKIE_SECURE"] = False
+    else:
+        app.config["SESSION_COOKIE_SECURE"] = True
     app.run(host="0.0.0.0", port=5000, debug=True)
