@@ -203,7 +203,7 @@ jobs:
          -v ${{ github.workspace }}:/zap/wrk/:rw \
          -w /zap/wrk \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-         -t https://gray-installations-rational-month.trycloudflare.com  \
+         -t https://differences-logo-bangkok-modelling.trycloudflare.com  \
          -r zap-report.html \
          -x zap-report.xml \
          -c zap.conf \
