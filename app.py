@@ -3,6 +3,9 @@ from flask_wtf import CSRFProtect
 import sqlite3
 import os
 import re
+import base64
+import hashlib
+import secrets
 from uuid import uuid4
 from urllib.parse import urlencode
 import psutil
@@ -391,10 +394,78 @@ def get_current_user_profile():
 
 @app.after_request
 def add_security_headers(response):
+    csp_nonce = secrets.token_urlsafe(16)
+    script_hashes = set()
+    style_hashes = set()
+
+    if response.mimetype == "text/html":
+        html = response.get_data(as_text=True)
+
+        def build_csp_hash(value):
+            digest = hashlib.sha256(value.encode("utf-8")).digest()
+            return f"'sha256-{base64.b64encode(digest).decode('ascii')}'"
+
+        def add_nonce_to_style(match):
+            return f'<style nonce="{csp_nonce}"{match.group(1)}>'
+
+        def add_nonce_to_script(match):
+            return f'<script nonce="{csp_nonce}"{match.group(1)}>'
+
+        html = re.sub(
+            r"<style(?![^>]*\bnonce=)([^>]*)>",
+            add_nonce_to_style,
+            html,
+            flags=re.IGNORECASE,
+        )
+        html = re.sub(
+            r"<script(?![^>]*\bsrc=)(?![^>]*\bnonce=)([^>]*)>",
+            add_nonce_to_script,
+            html,
+            flags=re.IGNORECASE,
+        )
+
+        for _, attribute_value in re.findall(r"(\bon\w+)\s*=\s*\"([^\"]*)\"", html, flags=re.IGNORECASE):
+            if attribute_value.strip():
+                script_hashes.add(build_csp_hash(attribute_value))
+        for _, attribute_value in re.findall(r"(\bon\w+)\s*=\s*'([^']*)'", html, flags=re.IGNORECASE):
+            if attribute_value.strip():
+                script_hashes.add(build_csp_hash(attribute_value))
+
+        for attribute_value in re.findall(r"\bstyle\s*=\s*\"([^\"]*)\"", html, flags=re.IGNORECASE):
+            if attribute_value.strip():
+                style_hashes.add(build_csp_hash(attribute_value))
+        for attribute_value in re.findall(r"\bstyle\s*=\s*'([^']*)'", html, flags=re.IGNORECASE):
+            if attribute_value.strip():
+                style_hashes.add(build_csp_hash(attribute_value))
+
+        response.set_data(html)
+
+    script_sources = [
+        "'self'",
+        f"'nonce-{csp_nonce}'",
+        "'unsafe-hashes'",
+        "https://cdn.jsdelivr.net",
+        "https://unpkg.com",
+    ] + sorted(script_hashes)
+
+    style_sources = [
+        "'self'",
+        f"'nonce-{csp_nonce}'",
+        "'unsafe-hashes'",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com",
+        "https://unpkg.com",
+    ] + sorted(style_hashes)
+
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://unpkg.com; "
-        "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+        "base-uri 'self'; "
+        "object-src 'none'; "
+        "frame-ancestors 'none'; "
+        "form-action 'self'; "
+        f"style-src {' '.join(style_sources)}; "
+        f"script-src {' '.join(script_sources)}; "
         "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
         "img-src 'self' data: https://images.unsplash.com https://flagcdn.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://unpkg.com; "
         "connect-src 'self' https://tile.openstreetmap.org https://*.tile.openstreetmap.org; "
@@ -1915,6 +1986,8 @@ def seats():
         selected_flight=selected_flight,
         selected_name=selected_name
     )
+
+
 
 if __name__ == "__main__":
     if os.environ.get("FLASK_ENV") == "development":
