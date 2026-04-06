@@ -3,8 +3,7 @@ from flask_wtf import CSRFProtect
 import sqlite3
 import os
 import re
-import base64
-import hashlib
+import json
 import secrets
 from uuid import uuid4
 from urllib.parse import urlencode
@@ -389,21 +388,105 @@ def get_current_user_profile():
         "phone": row[6] or "",
         "staff_id": row[7] or "",
         "department": row[8] or "",
+
         "password": row[9] or ""
     }
 
 @app.after_request
 def add_security_headers(response):
     csp_nonce = secrets.token_urlsafe(16)
-    script_hashes = set()
-    style_hashes = set()
 
     if response.mimetype == "text/html":
         html = response.get_data(as_text=True)
+        inline_style_classes = {}
+        event_bindings = []
+        style_attribute_pattern = re.compile(r"\sstyle\s*=\s*(\"([^\"]*)\"|'([^']*)')", re.IGNORECASE)
+        class_attribute_pattern = re.compile(r'\bclass\s*=\s*("([^"]*)"|\'([^\']*)\')', re.IGNORECASE)
+        event_attribute_pattern = re.compile(r"\s(on[a-z]+)\s*=\s*(\"([^\"]*)\"|'([^']*)')", re.IGNORECASE)
 
-        def build_csp_hash(value):
-            digest = hashlib.sha256(value.encode("utf-8")).digest()
-            return f"'sha256-{base64.b64encode(digest).decode('ascii')}'"
+        def build_style_class(style_value):
+            normalized_style = style_value.strip()
+            if normalized_style not in inline_style_classes:
+                inline_style_classes[normalized_style] = f"csp-inline-style-{len(inline_style_classes) + 1}"
+            return inline_style_classes[normalized_style]
+
+        def build_event_action(handler_value):
+            normalized_handler = handler_value.strip().rstrip(";")
+
+            if re.fullmatch(r"this\.closest\((['\"])form\1\)\.submit\(\)", normalized_handler):
+                return "const form = element.closest('form'); if (form) { form.submit(); }"
+
+            function_match = re.fullmatch(r"([A-Za-z_$][\w$]*)\((.*)\)", normalized_handler)
+            if not function_match:
+                return None
+
+            function_name, raw_argument = function_match.groups()
+            raw_argument = raw_argument.strip()
+
+            if not raw_argument:
+                return (
+                    f"if (typeof window[{json.dumps(function_name)}] === 'function') "
+                    f"{{ window[{json.dumps(function_name)}](); }}"
+                )
+
+            if re.fullmatch(r"-?\d+(?:\.\d+)?", raw_argument) or raw_argument in {"true", "false", "null"}:
+                argument_expression = raw_argument
+            else:
+                string_match = re.fullmatch(r"""(['"])(.*)\1""", raw_argument)
+                if not string_match:
+                    return None
+                argument_expression = json.dumps(string_match.group(2))
+
+            return (
+                f"if (typeof window[{json.dumps(function_name)}] === 'function') "
+                f"{{ window[{json.dumps(function_name)}]({argument_expression}); }}"
+            )
+
+        def transform_opening_tag(match):
+            tag_markup = match.group(0)
+
+            style_match = style_attribute_pattern.search(tag_markup)
+            if style_match:
+                style_value = style_match.group(2) or style_match.group(3) or ""
+                style_class = build_style_class(style_value)
+                tag_markup = style_attribute_pattern.sub("", tag_markup, count=1)
+
+                class_match = class_attribute_pattern.search(tag_markup)
+                if class_match:
+                    current_classes = (class_match.group(2) or class_match.group(3) or "").split()
+                    if style_class not in current_classes:
+                        current_classes.append(style_class)
+                    tag_markup = class_attribute_pattern.sub(
+                        f'class="{" ".join(current_classes)}"',
+                        tag_markup,
+                        count=1
+                    )
+                else:
+                    tag_markup = tag_markup[:-1] + f' class="{style_class}">'
+
+            element_event_id = None
+
+            def replace_event_attribute(event_match):
+                nonlocal element_event_id
+                event_name = (event_match.group(1) or "")[2:].lower()
+                handler_value = event_match.group(3) or event_match.group(4) or ""
+                event_action = build_event_action(handler_value)
+
+                if not event_action:
+                    return event_match.group(0)
+
+                if not element_event_id:
+                    element_event_id = f"csp-event-{len(event_bindings) + 1}"
+
+                event_bindings.append((element_event_id, event_name, event_action))
+                return ""
+
+            tag_markup = event_attribute_pattern.sub(replace_event_attribute, tag_markup)
+
+            if element_event_id:
+                tag_markup = tag_markup[:-1] + f' data-csp-event-id="{element_event_id}">'
+
+            return tag_markup
 
         def add_nonce_to_style(match):
             return f'<style nonce="{csp_nonce}"{match.group(1)}>'
@@ -424,39 +507,59 @@ def add_security_headers(response):
             flags=re.IGNORECASE,
         )
 
-        for _, attribute_value in re.findall(r"(\bon\w+)\s*=\s*\"([^\"]*)\"", html, flags=re.IGNORECASE):
-            if attribute_value.strip():
-                script_hashes.add(build_csp_hash(attribute_value))
-        for _, attribute_value in re.findall(r"(\bon\w+)\s*=\s*'([^']*)'", html, flags=re.IGNORECASE):
-            if attribute_value.strip():
-                script_hashes.add(build_csp_hash(attribute_value))
+        html = re.sub(r"<[A-Za-z][^<>]*>", transform_opening_tag, html)
 
-        for attribute_value in re.findall(r"\bstyle\s*=\s*\"([^\"]*)\"", html, flags=re.IGNORECASE):
-            if attribute_value.strip():
-                style_hashes.add(build_csp_hash(attribute_value))
-        for attribute_value in re.findall(r"\bstyle\s*=\s*'([^']*)'", html, flags=re.IGNORECASE):
-            if attribute_value.strip():
-                style_hashes.add(build_csp_hash(attribute_value))
+        if inline_style_classes:
+            generated_styles = "\n".join(
+                f".{class_name} {{ {style_value} }}"
+                for style_value, class_name in inline_style_classes.items()
+            )
+            style_block = f'<style nonce="{csp_nonce}">\n{generated_styles}\n</style>'
+            if "</head>" in html:
+                html = html.replace("</head>", style_block + "\n</head>", 1)
+            else:
+                html = style_block + html
+
+        if event_bindings:
+            listener_lines = ["document.addEventListener('DOMContentLoaded', function () {"]
+            for index, (event_id, event_name, event_action) in enumerate(event_bindings, start=1):
+                selector = f'[data-csp-event-id="{event_id}"]'
+                listener_lines.append(f"  const element{index} = document.querySelector({json.dumps(selector)});")
+                listener_lines.append(f"  if (element{index}) {{")
+                listener_lines.append(
+                    f"    element{index}.addEventListener({json.dumps(event_name)}, function (event) {{"
+                )
+                listener_lines.append("      const element = event.currentTarget;")
+                listener_lines.append(f"      {event_action}")
+                listener_lines.append("    });")
+                listener_lines.append("  }")
+            listener_lines.append("});")
+            listener_script = '<script nonce="{0}">\n{1}\n</script>'.format(
+                csp_nonce,
+                "\n".join(listener_lines)
+            )
+            if "</body>" in html:
+                html = html.replace("</body>", listener_script + "\n</body>", 1)
+            else:
+                html += listener_script
 
         response.set_data(html)
 
     script_sources = [
         "'self'",
         f"'nonce-{csp_nonce}'",
-        "'unsafe-hashes'",
         "https://cdn.jsdelivr.net",
         "https://unpkg.com",
-    ] + sorted(script_hashes)
+    ]
 
     style_sources = [
         "'self'",
         f"'nonce-{csp_nonce}'",
-        "'unsafe-hashes'",
         "https://cdn.jsdelivr.net",
         "https://cdnjs.cloudflare.com",
         "https://fonts.googleapis.com",
         "https://unpkg.com",
-    ] + sorted(style_hashes)
+    ]
 
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
@@ -470,6 +573,11 @@ def add_security_headers(response):
         "img-src 'self' data: https://images.unsplash.com https://flagcdn.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://unpkg.com; "
         "connect-src 'self' https://tile.openstreetmap.org https://*.tile.openstreetmap.org; "
     )
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Permissions-Policy"] = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()"
+    response.headers["Cross-Origin-Embedder-Policy"] = "credentialless"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-XSS-Protection'] = '1; mode=block'
@@ -1428,8 +1536,8 @@ def search_flights():
     cursor.execute("""
     SELECT id, flight_number, departure, destination, gate, time, status
     FROM flights
-    WHERE departure LIKE ? ESCAPE '\'
-    AND destination LIKE ? ESCAPE '\'
+    WHERE departure LIKE ? ESCAPE '\\'
+    AND destination LIKE ? ESCAPE '\\'
     """, (departure_like or "%", destination_like or "%"))
 
     flights = cursor.fetchall()
@@ -1518,8 +1626,8 @@ def filter_flights():
     query = """
     SELECT id, flight_number, departure, destination, gate, time, status
     FROM flights
-    WHERE departure LIKE ? ESCAPE '\'
-    AND destination LIKE ? ESCAPE '\'
+    WHERE departure LIKE ? ESCAPE '\\'
+    AND destination LIKE ? ESCAPE '\\'
     """
 
     params = [departure_like or "%", destination_like or "%"]
@@ -1994,4 +2102,4 @@ if __name__ == "__main__":
         app.config["SESSION_COOKIE_SECURE"] = False
     else:
         app.config["SESSION_COOKIE_SECURE"] = True
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
