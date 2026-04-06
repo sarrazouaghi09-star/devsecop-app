@@ -2096,13 +2096,13 @@ def seats():
     )
 
 
-
 if __name__ == "__main__":
     env = os.environ.get("FLASK_ENV", "development")
-    
-    if env == "development":
-        app.config["SESSION_COOKIE_SECURE"] = False
-        app.run(host="127.0.0.1", port=5000, debug=True)
-    else:
-        app.config["SESSION_COOKIE_SECURE"] = True
-        app.run(host="0.0.0.0", port=5000, debug=False)
+
+    host = os.environ.get("FLASK_RUN_HOST", "127.0.0.1")
+    port = int(os.environ.get("FLASK_RUN_PORT", 5000))
+    debug = env == "development"
+
+    app.config["SESSION_COOKIE_SECURE"] = not debug
+
+    app.run(host=host, port=port, debug=debug)
