@@ -186,7 +186,7 @@ jobs:
   zap-scan:
     runs-on: ubuntu-latest
     needs: deploy
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -195,8 +195,8 @@ jobs:
          docker run --rm \
          -v ${{ github.workspace }}:/zap/wrk/:rw \
          ghcr.io/zaproxy/zaproxy:stable \
-         ls -la /zap/wrk 
-      - name: Run ZAP Scan 
+         ls -la /zap/wrk
+      - name: Run ZAP Scan
         continue-on-error: true
         run: |
          docker run --rm -u root \
@@ -204,6 +204,7 @@ jobs:
          -w /zap/wrk \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
          -t https://differences-logo-bangkok-modelling.trycloudflare.com  \
+         -x zap-report.xml  \
          -r zap-report.html \
          -x zap-report.xml \
          -c zap.conf \
@@ -212,7 +213,7 @@ jobs:
         run: |
           echo "listing files"
           ls -la
-         
+
       - name: Upload ZAP artifact
         uses: actions/upload-artifact@v4
         with:
@@ -220,11 +221,11 @@ jobs:
           path: |
             zap-report.xml
             zap-report.html
-  
+
   upload-zap:
     runs-on: self-hosted
     needs: zap-scan
-    
+
     steps:
      - name: Download ZAP report
        uses: actions/download-artifact@v4
