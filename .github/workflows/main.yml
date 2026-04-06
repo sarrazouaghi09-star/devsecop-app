@@ -197,7 +197,9 @@ jobs:
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
          -t https://categories-translated-communities-connected.trycloudflare.com \
          -r zap-report.html \
-         -x zap-report.xml || true
+         -x zap-report.xml \
+         -c zap.conf \
+         -I || true
       - name: Debug files
         run: |
           echo "listing files"
