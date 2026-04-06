@@ -1,5 +1,11 @@
 import sqlite3
+import os
 from werkzeug.security import generate_password_hash
+
+
+admin_password = os.environ.get("ADMIN_PASSWORD")
+if not admin_password:
+    raise RuntimeError("ADMIN_PASSWORD environment variable is required.")
 
 conn = sqlite3.connect("database.db")
 c = conn.cursor()
@@ -65,7 +71,7 @@ time TEXT
 c.execute("""
 INSERT INTO users(username, password, role, name, email, phone, staff_id, department, pfp)
 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
-""", ("admin", generate_password_hash("admin123"), "admin", "", "", "", "", "", ""))
+""", ("admin", generate_password_hash(admin_password), "admin", "", "", "", "", "", ""))
 c.execute("INSERT INTO flights VALUES(NULL,'TU123','Tunis','Paris','A2','10.26','ON TIME')")
 
 conn.commit()
