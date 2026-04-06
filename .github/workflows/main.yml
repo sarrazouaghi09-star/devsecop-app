@@ -203,7 +203,7 @@ jobs:
          -v ${{ github.workspace }}:/zap/wrk/:rw \
          -w /zap/wrk \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-         -t https://schedule-aims-poems-verse.trycloudflare.com  \
+         -t https://motorcycles-latex-drain-fellow.trycloudflare.com \
          -r zap-report.html \
          -x zap-report.xml \
          -c zap.conf \
