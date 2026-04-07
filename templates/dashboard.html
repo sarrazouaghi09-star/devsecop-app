@@ -14,6 +14,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 integrity="sha384-/o6I2CkkWC//PSjvWC/eYN7l3xM3tJm8ZzVkCOfp//W05QcE3mlGskpoHB6XqI+B"
 crossorigin="anonymous">
 
+<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}">
+
 <style>
 
 body{
@@ -598,8 +600,8 @@ background:#374151;
 
 <div class="container">
 
-<a href="/dashboard">
-<img src="/static/tunisair.png" style="height:45px">
+<a href="{{ ROUTES.dashboard }}">
+<img src="{{ ASSETS.logo }}" class="site-logo">
 </a>
 
 <ul class="navbar-nav ms-5">
@@ -652,12 +654,12 @@ Manage Flights
 
 <div class="manage-panel">
 
-<a href="/flights_dashboard" class="manage-item">
+<a href="{{ ROUTES.flights_dashboard }}" class="manage-item">
 <i class="fa fa-table"></i>
 Flight Dashboard
 </a>
 
-<a href="/flights" class="manage-item">
+<a href="{{ ROUTES.flights }}" class="manage-item">
 <i class="fa fa-plane"></i>
 Manage Flights
 </a>
@@ -689,7 +691,7 @@ Operations
 
 <div class="manage-panel">
 
-<a href="/passengers" class="manage-item">
+<a href="{{ ROUTES.passengers }}" class="manage-item">
 <i class="fa fa-users"></i>
 Passenger Management
 </a>
@@ -699,7 +701,7 @@ Passenger Management
 Seat Assignment
 </a>
 
-<a href="/baggage" class="manage-item">
+<a href="{{ ROUTES.baggage }}" class="manage-item">
 <i class="fa fa-suitcase"></i>
 Baggage Tracking
 </a>
@@ -743,7 +745,7 @@ Upload Documents
 </a>
 
 {% if is_admin %}
-<a href="/users" class="manage-item">
+<a href="{{ ROUTES.users }}" class="manage-item">
 <i class="fa fa-user-cog"></i>
 User Management
 </a>
@@ -784,7 +786,7 @@ style="z-index:1000"></div>
 
 {% if admin_profile %}
 <div class="header-profile">
-<a href="/edit-profile" class="profile-access-link">
+<a href="{{ ROUTES.edit_profile }}" class="profile-access-link">
 <div class="text-end">
 <div class="fw-semibold">{{ admin_profile[0] }}</div>
 <div class="text-muted small text-uppercase">{{ admin_profile[1] }}</div>
@@ -792,11 +794,11 @@ style="z-index:1000"></div>
 </a>
 
 {% if admin_profile[2] %}
-<a href="/edit-profile" class="profile-access-link">
-<img src="/static/uploads/users/{{ admin_profile[2] }}" alt="Admin profile" class="header-avatar">
+<a href="{{ ROUTES.edit_profile }}" class="profile-access-link">
+<img src="{{ ASSETS.user_uploads }}/{{ admin_profile[2] }}" alt="Admin profile" class="header-avatar">
 </a>
 {% else %}
-<a href="/edit-profile" class="profile-access-link">
+<a href="{{ ROUTES.edit_profile }}" class="profile-access-link">
 <div class="header-fallback">A</div>
 </a>
 {% endif %}
@@ -806,7 +808,7 @@ style="z-index:1000"></div>
 <i class="fa-solid fa-ellipsis-vertical"></i>
 </summary>
 <div class="header-menu-panel">
-<a href="/edit-profile" class="header-menu-item">
+<a href="{{ ROUTES.edit_profile }}" class="header-menu-item">
 <i class="fa-solid fa-user-pen"></i>
 Edit Profile
 </a>
@@ -814,7 +816,7 @@ Edit Profile
 <i class="fa-solid fa-moon"></i>
 Dark Mode
 </button>
-<form method="POST" action="/logout" style="display:block; margin:0;">
+<form method="POST" action="{{ ROUTES.logout }}" class="menu-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <button type="submit" class="header-menu-item logout-link">
 <i class="fa-solid fa-right-from-bracket"></i>
@@ -982,7 +984,7 @@ Search Flight
 
 <p>Manage airline flights</p>
 
-<a href="/flights" class="btn btn-outline-danger">Open</a>
+<a href="{{ ROUTES.flights }}" class="btn btn-outline-danger">Open</a>
 
 </div>
 
@@ -1041,8 +1043,8 @@ Search Flight
 
 const pages = [
 
-{ name:"Flight Dashboard", url:"/flights_dashboard" },
-{ name:"Manage Flights", url:"/flights" },
+{ name:"Flight Dashboard", url:"{{ ROUTES.flights_dashboard }}" },
+{ name:"Manage Flights", url:"{{ ROUTES.flights }}" },
 { name:"Flight Schedule", url:"/schedule" },
 { name:"Delay Management", url:"/delays" },
 { name:"Gate Assignment", url:"/gates" },
@@ -1057,7 +1059,7 @@ const pages = [
 {% if is_admin %}
 { name:"Security Alerts", url:"/security" },
 { name:"Upload Documents", url:"/upload" },
-{ name:"User Management", url:"/users" },
+{ name:"User Management", url:"{{ ROUTES.users }}" },
 { name:"System Monitoring", url:"/monitoring" },
 { name:"System Logs", url:"/logs" }
 {% endif %}
