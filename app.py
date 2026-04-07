@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 import psutil
 import calendar
 from datetime import date
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -267,7 +267,7 @@ def build_unique_filename(original_filename, prefix="upload"):
     sanitized_original = secure_filename(original_filename or "")
     extension = get_file_extension(sanitized_original)
     safe_prefix = secure_filename(prefix or "upload") or "upload"
-    timestamp = datetime.utcnow().strftime(FILENAME_TIMESTAMP_FORMAT)
+    timestamp = datetime.now(timezone.utc).strftime(FILENAME_TIMESTAMP_FORMAT)
     unique_suffix = uuid4().hex
 
     if extension:
