@@ -39,6 +39,12 @@ ALLOWED_IMAGE_MIME_TYPES = {
 # SECURITY FIX: use MIME validation as an extra defense in depth.
 ALLOWED_UPLOAD_MIME_TYPES = ALLOWED_IMAGE_MIME_TYPES | {"application/pdf"}
 ALLOWED_USER_SCHEMA_COLUMNS = ("name", "email", "phone", "staff_id", "department")
+DATE_FORMAT = "%Y-%m-%d"
+DATETIME_LOCAL_FORMAT = "%Y-%m-%dT%H:%M"
+FILENAME_TIMESTAMP_FORMAT = "%Y%m%d%H%M%S"
+DISPLAY_DATETIME_FORMAT = "%d %b %Y, %H:%M"
+DISPLAY_DAY_FORMAT = "%d %b"
+NUMERIC_ID_PATTERN = re.compile(r"[0-9]+")
 SAFE_TEXT_PATTERN = re.compile(r"^[A-Za-z0-9\s@._:/#,+()\-]{1,100}$")
 USERNAME_PATTERN = re.compile(r"^\w{3,30}$")
 FLIGHT_NUMBER_PATTERN = re.compile(r"^\w{2,20}$")
@@ -57,11 +63,49 @@ FLIGHT_STATUS_CHOICES = {"On Time", "Boarding", "Delayed", "Cancelled"}
 BAGGAGE_STATUS_CHOICES = {"Loaded", "In Transit", "Delayed", "Arrived", "Checked In"}
 ROLE_CHOICES = {"admin", "staff"}
 FILTER_TYPE_CHOICES = {"day", "week", "month", "year"}
+SEARCH_RESULTS_TEMPLATE = "search_results.html"
+SEARCH_RESULTS_DEFAULT_FILTER_TYPE = "day"
+SEARCH_FIELD_MAX_LENGTH = 60
+PASSWORD_STATUS_MAX_LENGTH = 20
+PASSWORD_MESSAGE_MAX_LENGTH = 120
+JS_CLOSEST_FORM_SUBMIT_PATTERN = re.compile(r"this\.closest\((['\"])form\1\)\.submit\(\)")
+JS_FUNCTION_CALL_PATTERN = re.compile(r"([A-Za-z_$][\w$]*)\((.*)\)")
+JS_NUMERIC_LITERAL_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
+JS_QUOTED_STRING_PATTERN = re.compile(r"""(['"])(.*)\1""")
+STYLE_ATTRIBUTE_PATTERN = re.compile(r"\sstyle\s*=\s*(\"([^\"]*)\"|'([^']*)')", re.IGNORECASE)
+CLASS_ATTRIBUTE_PATTERN = re.compile(r'\bclass\s*=\s*("([^"]*)"|\'([^\']*)\')', re.IGNORECASE)
+EVENT_ATTRIBUTE_PATTERN = re.compile(r"\s(on[a-z]+)\s*=\s*(\"([^\"]*)\"|'([^']*)')", re.IGNORECASE)
+CURRENT_MONTH_FLIGHTS_QUERY = """
+SELECT id, flight_number, departure, destination, gate, time, status
+FROM flights
+WHERE strftime('%m', time) = strftime('%m', 'now')
+ORDER BY time
+"""
+FLIGHT_SEARCH_BASE_QUERY = """
+SELECT id, flight_number, departure, destination, gate, time, status
+FROM flights
+WHERE departure LIKE ? ESCAPE '\\'
+AND destination LIKE ? ESCAPE '\\'
+"""
 
 
 # SECURITY FIX: central validation helpers keep SQL inputs constrained before any query runs.
 def has_malicious_pattern(value):
     return bool(value and SQLI_PATTERN.search(value))
+
+
+def normalize_datetime_value(value, value_format, field_name, allow_empty):
+    value = (value or "").strip()
+
+    if not value:
+        if allow_empty:
+            return ""
+        raise ValueError(f"{field_name} is required")
+
+    try:
+        return datetime.strptime(value, value_format).strftime(value_format)
+    except ValueError as error:
+        raise ValueError(f"Invalid {field_name}") from error
 
 
 # SECURITY FIX: generic safe text validator for names, cities, and other free-text fields.
@@ -91,7 +135,7 @@ def safe_id(value, field_name="id", allow_empty=False):
             return None
         raise ValueError(f"{field_name} is required")
 
-    if not re.fullmatch(r"[0-9]+", value):
+    if not NUMERIC_ID_PATTERN.fullmatch(value):
         raise ValueError(f"Invalid {field_name}")
 
     parsed_value = int(value)
@@ -133,31 +177,11 @@ def safe_choice(value, choices, default=None, field_name="field", allow_empty=Fa
 
 
 def safe_date_value(value, field_name="date", allow_empty=True):
-    value = (value or "").strip()
-
-    if not value:
-        if allow_empty:
-            return ""
-        raise ValueError(f"{field_name} is required")
-
-    try:
-        return datetime.strptime(value, "%Y-%m-%d").strftime("%Y-%m-%d")
-    except ValueError as error:
-        raise ValueError(f"Invalid {field_name}") from error
+    return normalize_datetime_value(value, DATE_FORMAT, field_name, allow_empty)
 
 
 def safe_datetime_local(value, field_name="datetime", allow_empty=False):
-    value = (value or "").strip()
-
-    if not value:
-        if allow_empty:
-            return ""
-        raise ValueError(f"{field_name} is required")
-
-    try:
-        return datetime.strptime(value, "%Y-%m-%dT%H:%M").strftime("%Y-%m-%dT%H:%M")
-    except ValueError as error:
-        raise ValueError(f"Invalid {field_name}") from error
+    return normalize_datetime_value(value, DATETIME_LOCAL_FORMAT, field_name, allow_empty)
 
 
 def safe_username(value, allow_empty=False):
@@ -209,7 +233,7 @@ def build_unique_filename(original_filename, prefix="upload"):
     sanitized_original = secure_filename(original_filename or "")
     extension = get_file_extension(sanitized_original)
     safe_prefix = secure_filename(prefix or "upload") or "upload"
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    timestamp = datetime.utcnow().strftime(FILENAME_TIMESTAMP_FORMAT)
     unique_suffix = uuid4().hex
 
     if extension:
@@ -320,6 +344,134 @@ def add_months(value, months):
     return value.replace(year=year, month=month, day=day)
 
 
+def parse_datetime_value(value, value_format):
+    return datetime.strptime(value, value_format)
+
+
+def compute_filter_end_date(start_date, filter_type, selected_end_date=""):
+    if filter_type == "day":
+        return start_date + timedelta(days=1)
+    if selected_end_date:
+        return parse_datetime_value(selected_end_date, DATE_FORMAT) + timedelta(days=1)
+    if filter_type == "week":
+        return start_date + timedelta(days=7)
+    if filter_type == "month":
+        return add_months(start_date, 1)
+    return add_months(start_date, 12)
+
+
+def build_filter_date_params(selected_date, filter_type, selected_end_date=""):
+    if not selected_date:
+        return None
+
+    start_date = parse_datetime_value(selected_date, DATE_FORMAT)
+    end_date = compute_filter_end_date(start_date, filter_type, selected_end_date)
+
+    if end_date <= start_date:
+        raise ValueError("End date must be after the start date.")
+
+    return start_date.strftime(DATE_FORMAT), end_date.strftime(DATE_FORMAT)
+
+
+def parse_search_fields(form_data):
+    departure = safe_text(
+        form_data["departure"],
+        field_name="departure",
+        allow_empty=True,
+        max_length=SEARCH_FIELD_MAX_LENGTH,
+    )
+    destination = safe_text(
+        form_data["destination"],
+        field_name="destination",
+        allow_empty=True,
+        max_length=SEARCH_FIELD_MAX_LENGTH,
+    )
+
+    return {
+        "departure": departure,
+        "destination": destination,
+        "departure_like": safe_like_text(
+            departure,
+            field_name="departure",
+            max_length=SEARCH_FIELD_MAX_LENGTH,
+        ),
+        "destination_like": safe_like_text(
+            destination,
+            field_name="destination",
+            max_length=SEARCH_FIELD_MAX_LENGTH,
+        ),
+    }
+
+
+def build_flight_search_query(departure_like, destination_like, start_date=None, end_date=None):
+    query = FLIGHT_SEARCH_BASE_QUERY
+    params = [departure_like or "%", destination_like or "%"]
+
+    if start_date and end_date:
+        query += " AND datetime(time) >= datetime(?) AND datetime(time) < datetime(?)"
+        params.extend([start_date, end_date])
+
+    return query, params
+
+
+def fetch_flight_search_results(cursor, flights):
+    results = []
+
+    for flight in flights:
+        flight_id = flight[0]
+
+        cursor.execute(
+            """
+        SELECT name, passport, seat
+        FROM passengers
+        WHERE flight_id=?
+        """,
+            (flight_id,),
+        )
+
+        passengers = cursor.fetchall()
+
+        cursor.execute(
+            """
+        SELECT tag, weight, location
+        FROM baggage
+        WHERE flight_id=?
+        """,
+            (flight_id,),
+        )
+        cursor.fetchall()
+
+        results.append({
+            "flight": flight,
+            "passengers": passengers,
+        })
+
+    return results
+
+
+def render_search_results(
+    results,
+    departure="",
+    destination="",
+    selected_date="",
+    selected_end_date="",
+    filter_type=SEARCH_RESULTS_DEFAULT_FILTER_TYPE,
+    filter_error="",
+    filter_summary="",
+):
+    return render_template(
+        SEARCH_RESULTS_TEMPLATE,
+        results=results,
+        departure=departure,
+        destination=destination,
+        selected_date=selected_date,
+        selected_end_date=selected_end_date,
+        filter_type=filter_type,
+        filter_error=filter_error,
+        filter_summary=filter_summary,
+    )
+
+
 def build_filter_summary(filter_type, selected_date, selected_end_date):
     if not selected_date:
         return ""
@@ -331,6 +483,67 @@ def build_filter_summary(filter_type, selected_date, selected_end_date):
         return f"Showing flights from {selected_date} to {selected_end_date}"
 
     return f"Showing flights from {selected_date} using the {filter_type} range"
+
+
+def parse_baggage_filters(values, default_filter_type=SEARCH_RESULTS_DEFAULT_FILTER_TYPE):
+    try:
+        return {
+            "selected_flight_id": safe_id(values.get("flight", ""), field_name="flight", allow_empty=True),
+            "selected_date": safe_date_value(values.get("date", ""), field_name="date", allow_empty=True),
+            "selected_end_date": safe_date_value(values.get("end_date", ""), field_name="end date", allow_empty=True),
+            "filter_type": safe_choice(
+                values.get("filter", default_filter_type),
+                FILTER_TYPE_CHOICES,
+                default=default_filter_type,
+                field_name="filter",
+                allow_empty=default_filter_type == "",
+            ),
+        }
+    except ValueError:
+        return {
+            "selected_flight_id": None,
+            "selected_date": "",
+            "selected_end_date": "",
+            "filter_type": default_filter_type,
+        }
+
+
+def build_baggage_redirect_params(selected_flight_id, selected_date, selected_end_date, filter_type):
+    params = {}
+    if selected_flight_id:
+        params["flight"] = selected_flight_id
+    if selected_date:
+        params["date"] = selected_date
+    if selected_end_date:
+        params["end_date"] = selected_end_date
+    if filter_type:
+        params["filter"] = filter_type
+    return params
+
+
+def calculate_delay_minutes(time_value):
+    try:
+        scheduled = parse_datetime_value(time_value, DATETIME_LOCAL_FORMAT)
+        delay_minutes = int((datetime.now() - scheduled).total_seconds() / 60)
+        return max(delay_minutes, 0)
+    except Exception:
+        return None
+
+
+def fetch_current_month_flights():
+    conn = db()
+    cursor = conn.cursor()
+    cursor.execute(CURRENT_MONTH_FLIGHTS_QUERY)
+    flights = cursor.fetchall()
+    conn.close()
+    return flights
+
+
+def build_user_password_redirect(status, message):
+    return redirect("/users?" + urlencode({
+        "password_status": status,
+        "password_message": message,
+    }))
 
 
 def current_user_is_admin():
@@ -400,9 +613,6 @@ def add_security_headers(response):
         html = response.get_data(as_text=True)
         inline_style_classes = {}
         event_bindings = []
-        style_attribute_pattern = re.compile(r"\sstyle\s*=\s*(\"([^\"]*)\"|'([^']*)')", re.IGNORECASE)
-        class_attribute_pattern = re.compile(r'\bclass\s*=\s*("([^"]*)"|\'([^\']*)\')', re.IGNORECASE)
-        event_attribute_pattern = re.compile(r"\s(on[a-z]+)\s*=\s*(\"([^\"]*)\"|'([^']*)')", re.IGNORECASE)
 
         def build_style_class(style_value):
             normalized_style = style_value.strip()
@@ -413,10 +623,10 @@ def add_security_headers(response):
         def build_event_action(handler_value):
             normalized_handler = handler_value.strip().rstrip(";")
 
-            if re.fullmatch(r"this\.closest\((['\"])form\1\)\.submit\(\)", normalized_handler):
+            if JS_CLOSEST_FORM_SUBMIT_PATTERN.fullmatch(normalized_handler):
                 return "const form = element.closest('form'); if (form) { form.submit(); }"
 
-            function_match = re.fullmatch(r"([A-Za-z_$][\w$]*)\((.*)\)", normalized_handler)
+            function_match = JS_FUNCTION_CALL_PATTERN.fullmatch(normalized_handler)
             if not function_match:
                 return None
 
@@ -429,10 +639,10 @@ def add_security_headers(response):
                     f"{{ window[{json.dumps(function_name)}](); }}"
                 )
 
-            if re.fullmatch(r"-?\d+(?:\.\d+)?", raw_argument) or raw_argument in {"true", "false", "null"}:
+            if JS_NUMERIC_LITERAL_PATTERN.fullmatch(raw_argument) or raw_argument in {"true", "false", "null"}:
                 argument_expression = raw_argument
             else:
-                string_match = re.fullmatch(r"""(['"])(.*)\1""", raw_argument)
+                string_match = JS_QUOTED_STRING_PATTERN.fullmatch(raw_argument)
                 if not string_match:
                     return None
                 argument_expression = json.dumps(string_match.group(2))
@@ -445,18 +655,18 @@ def add_security_headers(response):
         def transform_opening_tag(match):
             tag_markup = match.group(0)
 
-            style_match = style_attribute_pattern.search(tag_markup)
+            style_match = STYLE_ATTRIBUTE_PATTERN.search(tag_markup)
             if style_match:
                 style_value = style_match.group(2) or style_match.group(3) or ""
                 style_class = build_style_class(style_value)
-                tag_markup = style_attribute_pattern.sub("", tag_markup, count=1)
+                tag_markup = STYLE_ATTRIBUTE_PATTERN.sub("", tag_markup, count=1)
 
-                class_match = class_attribute_pattern.search(tag_markup)
+                class_match = CLASS_ATTRIBUTE_PATTERN.search(tag_markup)
                 if class_match:
                     current_classes = (class_match.group(2) or class_match.group(3) or "").split()
                     if style_class not in current_classes:
                         current_classes.append(style_class)
-                    tag_markup = class_attribute_pattern.sub(
+                    tag_markup = CLASS_ATTRIBUTE_PATTERN.sub(
                         f'class="{" ".join(current_classes)}"',
                         tag_markup,
                         count=1
@@ -481,7 +691,7 @@ def add_security_headers(response):
                 event_bindings.append((element_event_id, event_name, event_action))
                 return ""
 
-            tag_markup = event_attribute_pattern.sub(replace_event_attribute, tag_markup)
+            tag_markup = EVENT_ATTRIBUTE_PATTERN.sub(replace_event_attribute, tag_markup)
 
             if element_event_id:
                 tag_markup = tag_markup[:-1] + f' data-csp-event-id="{element_event_id}">'
@@ -925,7 +1135,7 @@ def flights_dashboard():
 
     for flight in flights:
         try:
-            scheduled = datetime.strptime(flight[5], "%Y-%m-%dT%H:%M")
+            scheduled = parse_datetime_value(flight[5], DATETIME_LOCAL_FORMAT)
         except ValueError:
             continue
 
@@ -935,7 +1145,7 @@ def flights_dashboard():
                 "departure": flight[2],
                 "destination": flight[3],
                 "gate": flight[4],
-                "time": scheduled.strftime("%d %b %Y, %H:%M"),
+                "time": scheduled.strftime(DISPLAY_DATETIME_FORMAT),
                 "status": flight[6],
             })
 
@@ -943,7 +1153,7 @@ def flights_dashboard():
         route_counts[route_key] = route_counts.get(route_key, 0) + 1
         gate_counts[flight[4]] = gate_counts.get(flight[4], 0) + 1
 
-        date_key = scheduled.strftime("%d %b")
+        date_key = scheduled.strftime(DISPLAY_DAY_FORMAT)
         if (scheduled.date() - now.date()).days in range(0, 7):
             next_seven_days[date_key] = next_seven_days.get(date_key, 0) + 1
 
@@ -991,7 +1201,7 @@ def flights_dashboard():
 
         for flight in flights:
             try:
-                scheduled = datetime.strptime(flight[5], "%Y-%m-%dT%H:%M")
+                scheduled = parse_datetime_value(flight[5], DATETIME_LOCAL_FORMAT)
             except ValueError:
                 continue
 
@@ -1296,17 +1506,12 @@ def baggage():
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-    try:
-        # SECURITY FIX: normalize baggage filters before they influence query conditions.
-        selected_flight_id = safe_id(request.args.get("flight", ""), field_name="flight", allow_empty=True)
-        selected_date = safe_date_value(request.args.get("date", ""), field_name="date", allow_empty=True)
-        selected_end_date = safe_date_value(request.args.get("end_date", ""), field_name="end date", allow_empty=True)
-        filter_type = safe_choice(request.args.get("filter", "day"), FILTER_TYPE_CHOICES, default="day", field_name="filter")
-    except ValueError:
-        selected_flight_id = None
-        selected_date = ""
-        selected_end_date = ""
-        filter_type = "day"
+    # SECURITY FIX: normalize baggage filters before they influence query conditions.
+    filters = parse_baggage_filters(request.args)
+    selected_flight_id = filters["selected_flight_id"]
+    selected_date = filters["selected_date"]
+    selected_end_date = filters["selected_end_date"]
+    filter_type = filters["filter_type"]
 
     selected_flight = str(selected_flight_id) if selected_flight_id else ""
     filter_error = ""
@@ -1340,28 +1545,18 @@ def baggage():
         params.append(selected_flight_id)
 
     if selected_date:
-        start_date = datetime.strptime(selected_date, "%Y-%m-%d")
-
-        if filter_type == "day":
-            end_date = start_date + timedelta(days=1)
-        elif selected_end_date:
-            end_date = datetime.strptime(selected_end_date, "%Y-%m-%d") + timedelta(days=1)
-        elif filter_type == "week":
-            end_date = start_date + timedelta(days=7)
-        elif filter_type == "month":
-            end_date = add_months(start_date, 1)
-        else:
-            end_date = add_months(start_date, 12)
-
-        if end_date <= start_date:
+        try:
+            start_date_value, end_date_value = build_filter_date_params(
+                selected_date,
+                filter_type,
+                selected_end_date,
+            )
+        except ValueError:
             filter_error = "End date must be after the start date."
         else:
             query += " AND" if params else " WHERE"
             query += " datetime(flights.time) >= datetime(?) AND datetime(flights.time) < datetime(?)"
-            params.extend([
-                start_date.strftime("%Y-%m-%d"),
-                end_date.strftime("%Y-%m-%d")
-            ])
+            params.extend([start_date_value, end_date_value])
 
     query += " ORDER BY datetime(flights.time) ASC"
     cursor.execute(query, params)
@@ -1450,26 +1645,13 @@ def delete_baggage(id):
     conn.commit()
     conn.close()
 
-    try:
-        selected_flight_id = safe_id(request.form.get("flight", ""), field_name="flight", allow_empty=True)
-        selected_date = safe_date_value(request.form.get("date", ""), field_name="date", allow_empty=True)
-        selected_end_date = safe_date_value(request.form.get("end_date", ""), field_name="end date", allow_empty=True)
-        filter_type = safe_choice(request.form.get("filter", ""), FILTER_TYPE_CHOICES, default="", field_name="filter", allow_empty=True)
-    except ValueError:
-        selected_flight_id = None
-        selected_date = ""
-        selected_end_date = ""
-        filter_type = ""
-
-    params = {}
-    if selected_flight_id:
-        params["flight"] = selected_flight_id
-    if selected_date:
-        params["date"] = selected_date
-    if selected_end_date:
-        params["end_date"] = selected_end_date
-    if filter_type:
-        params["filter"] = filter_type
+    filters = parse_baggage_filters(request.form, default_filter_type="")
+    params = build_baggage_redirect_params(
+        filters["selected_flight_id"],
+        filters["selected_date"],
+        filters["selected_end_date"],
+        filters["filter_type"],
+    )
 
     if params:
         return redirect("/baggage?" + urlencode(params))
@@ -1520,187 +1702,101 @@ def search_flights():
 
     try:
         # SECURITY FIX: sanitize LIKE search terms and escape wildcards before querying.
-        departure = safe_text(request.form["departure"], field_name="departure", allow_empty=True, max_length=60)
-        destination = safe_text(request.form["destination"], field_name="destination", allow_empty=True, max_length=60)
-        departure_like = safe_like_text(departure, field_name="departure", max_length=60)
-        destination_like = safe_like_text(destination, field_name="destination", max_length=60)
+        search_inputs = parse_search_fields(request.form)
     except ValueError:
-        departure = ""
-        destination = ""
-        departure_like = "%"
-        destination_like = "%"
+        search_inputs = {
+            "departure": "",
+            "destination": "",
+            "departure_like": "%",
+            "destination_like": "%",
+        }
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
-    cursor.execute("""
-    SELECT id, flight_number, departure, destination, gate, time, status
-    FROM flights
-    WHERE departure LIKE ? ESCAPE '\\'
-    AND destination LIKE ? ESCAPE '\\'
-    """, (departure_like or "%", destination_like or "%"))
+    query, params = build_flight_search_query(
+        search_inputs["departure_like"],
+        search_inputs["destination_like"],
+    )
+    cursor.execute(query, params)
 
     flights = cursor.fetchall()
-
-    results = []
-
-    for f in flights:
-
-        flight_id = f[0]
-
-        cursor.execute("""
-        SELECT name, passport, seat
-        FROM passengers
-        WHERE flight_id=?
-        """,(flight_id,))
-
-        passengers = cursor.fetchall()
-
-        cursor.execute("""
-        SELECT tag, weight, location
-        FROM baggage
-        WHERE flight_id=?
-        """,(flight_id,))
-
-        baggage = cursor.fetchall()
-
-        results.append({
-            "flight":f,
-            "passengers":passengers
-        })
+    results = fetch_flight_search_results(cursor, flights)
 
     conn.close()
 
-    if len(results) == 0:
-        return render_template(
-        "search_results.html",
-        results=[],
-        departure=departure,
-        destination=destination,
-        selected_date="",
-        selected_end_date="",
-        filter_type="day",
-        filter_error="",
-        filter_summary=""
+    return render_search_results(
+        [] if len(results) == 0 else results,
+        departure=search_inputs["departure"],
+        destination=search_inputs["destination"],
     )
 
-    return render_template(
-    "search_results.html",
-    results=results,
-    departure=departure,
-    destination=destination,
-    selected_date="",
-    selected_end_date="",
-    filter_type="day",
-    filter_error="",
-    filter_summary=""
-)
 @app.route("/filter-flights", methods=["POST"])
 def filter_flights():
 
     try:
         # SECURITY FIX: validate filter form values before they reach SQL or date logic.
-        departure = safe_text(request.form["departure"], field_name="departure", allow_empty=True, max_length=60)
-        destination = safe_text(request.form["destination"], field_name="destination", allow_empty=True, max_length=60)
+        search_inputs = parse_search_fields(request.form)
         selected_date = safe_date_value(request.form["date"], field_name="date", allow_empty=True)
         selected_end_date = safe_date_value(request.form.get("end_date", ""), field_name="end date", allow_empty=True)
-        filter_type = safe_choice(request.form["filter"], FILTER_TYPE_CHOICES, default="day", field_name="filter")
-        departure_like = safe_like_text(departure, field_name="departure", max_length=60)
-        destination_like = safe_like_text(destination, field_name="destination", max_length=60)
-    except ValueError:
-        return render_template(
-            "search_results.html",
-            results=[],
-            departure="",
-            destination="",
-            selected_date="",
-            selected_end_date="",
-            filter_type="day",
-            filter_error="Invalid search filters.",
-            filter_summary=""
+        filter_type = safe_choice(
+            request.form["filter"],
+            FILTER_TYPE_CHOICES,
+            default=SEARCH_RESULTS_DEFAULT_FILTER_TYPE,
+            field_name="filter",
         )
+    except ValueError:
+        return render_search_results([], filter_error="Invalid search filters.")
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
-    query = """
-    SELECT id, flight_number, departure, destination, gate, time, status
-    FROM flights
-    WHERE departure LIKE ? ESCAPE '\\'
-    AND destination LIKE ? ESCAPE '\\'
-    """
-
-    params = [departure_like or "%", destination_like or "%"]
+    query = FLIGHT_SEARCH_BASE_QUERY
+    params = [
+        search_inputs["departure_like"] or "%",
+        search_inputs["destination_like"] or "%",
+    ]
 
     if selected_date:
-        start_date = datetime.strptime(selected_date, "%Y-%m-%d")
-
-        if filter_type == "day":
-            end_date = start_date + timedelta(days=1)
-        elif selected_end_date:
-            end_date = datetime.strptime(selected_end_date, "%Y-%m-%d") + timedelta(days=1)
-        elif filter_type == "week":
-            end_date = start_date + timedelta(days=7)
-        elif filter_type == "month":
-            end_date = add_months(start_date, 1)
-        else:
-            end_date = add_months(start_date, 12)
-
-        if end_date <= start_date:
+        try:
+            start_date_value, end_date_value = build_filter_date_params(
+                selected_date,
+                filter_type,
+                selected_end_date,
+            )
+        except ValueError:
             conn.close()
-            return render_template(
-                "search_results.html",
-                results=[],
-                departure=departure,
-                destination=destination,
+            return render_search_results(
+                [],
+                departure=search_inputs["departure"],
+                destination=search_inputs["destination"],
                 selected_date=selected_date,
                 selected_end_date=selected_end_date,
                 filter_type=filter_type,
                 filter_error="End date must be after the start date.",
-                filter_summary=""
             )
-
-        query += " AND datetime(time) >= datetime(?) AND datetime(time) < datetime(?)"
-        params.extend([
-            start_date.strftime("%Y-%m-%d"),
-            end_date.strftime("%Y-%m-%d")
-        ])
+        query, params = build_flight_search_query(
+            search_inputs["departure_like"],
+            search_inputs["destination_like"],
+            start_date_value,
+            end_date_value,
+        )
 
     cursor.execute(query, params)
 
     flights = cursor.fetchall()
-
-    results = []
-
-    for f in flights:
-
-        flight_id = f[0]
-
-        cursor.execute("""
-        SELECT name, passport, seat
-        FROM passengers
-        WHERE flight_id=?
-        """,(flight_id,))
-
-        passengers = cursor.fetchall()
-
-        results.append({
-            "flight":f,
-            "passengers":passengers
-        })
+    results = fetch_flight_search_results(cursor, flights)
 
     conn.close()
 
-    return render_template(
-        "search_results.html",
-        results=results,
-        departure=departure,
-        destination=destination,
+    return render_search_results(
+        results,
+        departure=search_inputs["departure"],
+        destination=search_inputs["destination"],
         selected_date=selected_date,
         selected_end_date=selected_end_date,
         filter_type=filter_type,
-        filter_error="",
-        filter_summary=build_filter_summary(filter_type, selected_date, selected_end_date)
+        filter_summary=build_filter_summary(filter_type, selected_date, selected_end_date),
     )
     
 @app.route("/gates")
@@ -1761,20 +1857,7 @@ def delays():
         time = row[3]
         status = row[4]
 
-        delay_minutes = None
-
-        # example logic (can be improved later)
-        try:
-            scheduled = datetime.strptime(time, "%Y-%m-%dT%H:%M")
-            now = datetime.now()
-
-            delay_minutes = int((now - scheduled).total_seconds() / 60)
-
-            if delay_minutes < 0:
-                delay_minutes = 0
-
-        except:
-            delay_minutes = None
+        delay_minutes = calculate_delay_minutes(time)
 
         flights.append((flight_id, flight, gate, time, status, delay_minutes))
 
@@ -1808,20 +1891,7 @@ def update_delay():
 
 @app.route("/schedule")
 def schedule():
-
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    SELECT id, flight_number, departure, destination, gate, time, status
-    FROM flights
-    WHERE strftime('%m', time) = strftime('%m', 'now')
-    ORDER BY time
-    """)
-
-    flights = cursor.fetchall()
-
-    conn.close()
+    flights = fetch_current_month_flights()
 
     return render_template(
         "schedule.html",
@@ -1836,20 +1906,7 @@ def schedule():
 
 @app.route("/flight-status")
 def flight_status():
-
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    SELECT id, flight_number, departure, destination, gate, time, status
-    FROM flights
-    WHERE strftime('%m', time) = strftime('%m', 'now')
-    ORDER BY time
-    """)
-
-    flights = cursor.fetchall()
-
-    conn.close()
+    flights = fetch_current_month_flights()
 
     return render_template(
         "schedule.html",
@@ -1909,8 +1966,8 @@ def users():
     return render_template(
         "users.html",
         users=users,
-        password_status=safe_query_message(request.args.get("password_status", ""), max_length=20),
-        password_message=safe_query_message(request.args.get("password_message", ""), max_length=120)
+        password_status=safe_query_message(request.args.get("password_status", ""), max_length=PASSWORD_STATUS_MAX_LENGTH),
+        password_message=safe_query_message(request.args.get("password_message", ""), max_length=PASSWORD_MESSAGE_MAX_LENGTH)
     )
 
 
@@ -1982,7 +2039,7 @@ def change_user_password(id):
     new_password = request.form.get("new_password", "").strip()
 
     if not new_password:
-        return redirect("/users?password_status=error&password_message=Password%20cannot%20be%20empty")
+        return build_user_password_redirect("error", "Password cannot be empty")
 
     conn = db()
     cursor = conn.cursor()
@@ -1990,7 +2047,7 @@ def change_user_password(id):
     try:
         cursor.execute("SELECT id FROM users WHERE id=?", (id,))
         if not cursor.fetchone():
-            return redirect("/users?password_status=error&password_message=User%20not%20found")
+            return build_user_password_redirect("error", "User not found")
 
         cursor.execute(
             "UPDATE users SET password=? WHERE id=?",
@@ -2000,7 +2057,7 @@ def change_user_password(id):
     finally:
         conn.close()
 
-    return redirect("/users?password_status=success&password_message=Password%20updated%20successfully")
+    return build_user_password_redirect("success", "Password updated successfully")
 
 
 @app.route("/delete-user/<int:id>", methods=["POST"])
