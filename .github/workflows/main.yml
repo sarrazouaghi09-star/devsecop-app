@@ -203,7 +203,7 @@ jobs:
          -v ${{ github.workspace }}:/zap/wrk/:rw \
          -w /zap/wrk \
          ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-         -t https://flavor-consumers-lisa-leading.trycloudflare.com \
+         -t https://councils-sims-freebsd-membrane.trycloudflare.com \
          -x zap-report.xml  \
          -r zap-report.html \
          -x zap-report.xml \
