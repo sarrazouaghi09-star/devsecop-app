@@ -323,7 +323,11 @@ flex-wrap:wrap;
 <form method="GET" action="/seats" class="filter-form">
 <div class="input-group" style="max-width: 300px;">
 <input type="text" class="form-control" name="name" placeholder="Search by name" value="{{ selected_name if selected_name else '' }}">
-<span class="input-group-text" style="cursor: pointer;" onclick="this.closest('form').submit()">
+<span class="input-group-text"
+      style="cursor: pointer;"
+      onclick="this.closest('form').submit();"
+      onkeydown="if(event.key === 'Enter'){ this.closest('form').submit(); }"
+      tabindex="0">
 <i class="fas fa-search"></i>
 </span>
 </div>
