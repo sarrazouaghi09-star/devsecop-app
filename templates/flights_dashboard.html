@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" integrity="sha384-cN9dfHxc9DjAxvzvDZlaEu1F5BUN3bikQgMePPgberEkTCg40Hv0QfsSajfWaHzG" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha384-/o6I2CkkWC//PSjvWC/eYN7l3xM3tJm8ZzVkCOfp//W05QcE3mlGskpoHB6XqI+B" crossorigin="anonymous">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}">
 <style>
 :root{
 --bg:#f4f6f9;
@@ -971,16 +972,16 @@ grid-template-columns:1fr;
 <div class="dashboard-shell">
 <nav class="page-header">
 <div class="container page-wrap">
-<a href="/dashboard">
-<img src="/static/tunisair.png" alt="Tunisair">
+<a href="{{ ROUTES.dashboard }}">
+<img src="{{ ASSETS.logo }}" alt="Tunisair" class="site-logo">
 </a>
 
-<a href="/dashboard" class="header-nav-link">Dashboard</a>
+<a href="{{ ROUTES.dashboard }}" class="header-nav-link">Dashboard</a>
 <a class="header-nav-link active">Flights Dashboard</a>
 
 {% if admin_profile %}
 <div class="header-profile">
-<a href="/edit-profile" class="profile-access-link">
+<a href="{{ ROUTES.edit_profile }}" class="profile-access-link">
 <div class="text-end">
 <div class="fw-semibold">{{ admin_profile[0] }}</div>
 <div class="text-muted small text-uppercase">{{ admin_profile[1] }}</div>
@@ -988,11 +989,11 @@ grid-template-columns:1fr;
 </a>
 
 {% if admin_profile[2] %}
-<a href="/edit-profile" class="profile-access-link">
-<img src="/static/uploads/users/{{ admin_profile[2] }}" alt="Admin profile" class="header-avatar">
+<a href="{{ ROUTES.edit_profile }}" class="profile-access-link">
+<img src="{{ ASSETS.user_uploads }}/{{ admin_profile[2] }}" alt="Admin profile" class="header-avatar">
 </a>
 {% else %}
-<a href="/edit-profile" class="profile-access-link">
+<a href="{{ ROUTES.edit_profile }}" class="profile-access-link">
 <div class="header-fallback">A</div>
 </a>
 {% endif %}
@@ -1006,7 +1007,7 @@ grid-template-columns:1fr;
 <i class="fa-solid fa-moon"></i>
 Dark Mode
 </button>
-<form method="POST" action="/logout" style="display:block; margin:0;">
+<form method="POST" action="{{ ROUTES.logout }}" class="menu-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <button type="submit" class="header-menu-item logout-link">
 <i class="fa-solid fa-right-from-bracket"></i>
@@ -1023,8 +1024,8 @@ Log Off
 <main class="main">
 <div class="page-wrap">
 <div class="topbar">
-<div style="min-width:0; flex:1 1 320px;">
-<div class="page-kicker">Dashboard / <strong style="color:#d90429;">Flights Dashboard</strong></div>
+<div class="hero-copy">
+<div class="page-kicker">Dashboard / <strong class="danger-accent">Flights Dashboard</strong></div>
 <h1>Flights Dashboard</h1>
 <p>Admin overview for schedule health, gate pressure, and live route activity.</p>
 </div>
