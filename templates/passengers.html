@@ -775,7 +775,7 @@ Seat already taken for this flight
 <form method="GET" action="{{ ROUTES.passengers }}" class="filter-form">
 <div class="input-group table-search-group">
 <input type="text" class="form-control" name="name" placeholder="Search by name" value="{{ selected_name if selected_name else '' }}">
-<span class="input-group-text input-submit-trigger" onclick="this.closest('form').submit()">
+<span class="input-group-text input-submit-trigger" tabindex="0" onclick="this.closest('form').submit()" onkeydown="if (event.key === 'Enter') { this.closest('form').submit(); }">
 <i class="fas fa-search"></i>
 </span>
 </div>
