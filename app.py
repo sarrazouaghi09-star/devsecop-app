@@ -22,6 +22,34 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = True
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 csrf = CSRFProtect(app)
+ROUTE_LOGIN = "/login"
+ROUTE_LOGOUT = "/logout"
+ROUTE_DASHBOARD = "/dashboard"
+ROUTE_EDIT_PROFILE = "/edit-profile"
+ROUTE_FLIGHTS = "/flights"
+ROUTE_FLIGHTS_DASHBOARD = "/flights_dashboard"
+ROUTE_PASSENGERS = "/passengers"
+ROUTE_BAGGAGE = "/baggage"
+ROUTE_DELAYS = "/delays"
+ROUTE_USERS = "/users"
+STATIC_LOGO_PATH = "/static/tunisair.png"
+STATIC_USER_UPLOADS_PATH = "/static/uploads/users"
+TEMPLATE_ROUTES = {
+    "login": ROUTE_LOGIN,
+    "logout": ROUTE_LOGOUT,
+    "dashboard": ROUTE_DASHBOARD,
+    "edit_profile": ROUTE_EDIT_PROFILE,
+    "flights": ROUTE_FLIGHTS,
+    "flights_dashboard": ROUTE_FLIGHTS_DASHBOARD,
+    "passengers": ROUTE_PASSENGERS,
+    "baggage": ROUTE_BAGGAGE,
+    "delays": ROUTE_DELAYS,
+    "users": ROUTE_USERS,
+}
+TEMPLATE_ASSETS = {
+    "logo": STATIC_LOGO_PATH,
+    "user_uploads": STATIC_USER_UPLOADS_PATH,
+}
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 # SECURITY FIX: limit total request upload size to reduce abuse and oversized file attacks.
@@ -198,7 +226,7 @@ def safe_username(value, allow_empty=False):
     return value
 
 
-def safe_redirect_path(value, default="/flights"):
+def safe_redirect_path(value, default=ROUTE_FLIGHTS):
     value = (value or "").strip()
     if value.startswith("/") and "://" not in value and "\\" not in value:
         return value
@@ -226,6 +254,12 @@ def allowed_file_extension(filename, allowed_extensions):
 
 def allowed_mime_type(file_storage, allowed_mime_types):
     return (file_storage.mimetype or "").lower() in allowed_mime_types
+
+
+def build_path_with_query(path, params=None):
+    if params:
+        return path + "?" + urlencode(params)
+    return path
 
 
 # SECURITY FIX: generate unique server-side filenames to prevent overwrite and path traversal attacks.
@@ -540,10 +574,18 @@ def fetch_current_month_flights():
 
 
 def build_user_password_redirect(status, message):
-    return redirect("/users?" + urlencode({
+    return redirect(build_path_with_query(ROUTE_USERS, {
         "password_status": status,
         "password_message": message,
     }))
+
+
+@app.context_processor
+def inject_template_constants():
+    return {
+        "ROUTES": TEMPLATE_ROUTES,
+        "ASSETS": TEMPLATE_ASSETS,
+    }
 
 
 def current_user_is_admin():
@@ -831,7 +873,7 @@ def handle_file_too_large(error):
 
 @app.route("/")
 def home():
-    return redirect("/login")
+    return redirect(ROUTE_LOGIN)
 
 
 @app.route("/login", methods=["GET","POST"])
@@ -865,7 +907,7 @@ def login():
                 conn.commit()
             session["user_id"] = user[0]
             conn.close()
-            return redirect("/dashboard")
+            return redirect(ROUTE_DASHBOARD)
 
         conn.close()
         return render_template("login.html", login_error="Wrong username or password")
@@ -876,7 +918,7 @@ def login():
 @app.route("/logout", methods=["POST"])
 def logout():
     session.clear()
-    return redirect("/login")
+    return redirect(ROUTE_LOGIN)
 
 
 @app.route("/edit-profile")
@@ -884,7 +926,7 @@ def edit_profile():
     user = get_current_user_profile()
 
     if not user:
-        return redirect("/login")
+        return redirect(ROUTE_LOGIN)
 
     return render_template(
         "edit_profile.html",
@@ -900,7 +942,7 @@ def update_profile():
     user = get_current_user_profile()
 
     if not user:
-        return redirect("/login")
+        return redirect(ROUTE_LOGIN)
 
     try:
         # SECURITY FIX: validate all editable profile fields before persisting or querying.
@@ -1290,7 +1332,7 @@ def add_flight():
         gate = safe_text(request.form["gate"].upper(), field_name="gate", allow_empty=False, max_length=3, pattern=GATE_PATTERN)
         time = safe_datetime_local(request.form["time"], field_name="time")
     except ValueError:
-        return redirect("/flights")
+        return redirect(ROUTE_FLIGHTS)
 
     status = "On Time"
 
@@ -1304,7 +1346,7 @@ def add_flight():
 
     if cursor.fetchone():
         conn.close()
-        return redirect("/flights?error=flight_exists")
+        return redirect(build_path_with_query(ROUTE_FLIGHTS, {"error": "flight_exists"}))
 
     cursor.execute("""
         INSERT INTO flights
@@ -1315,7 +1357,7 @@ def add_flight():
     conn.commit()
     conn.close()
 
-    return redirect("/flights")
+    return redirect(ROUTE_FLIGHTS)
 
 
 @app.route("/update-flight-status/<int:id>", methods=["POST"])
@@ -1325,9 +1367,9 @@ def update_flight_status(id):
         # SECURITY FIX: whitelist status values and sanitize redirect targets.
         status = safe_choice(request.form["status"], FLIGHT_STATUS_CHOICES, field_name="status")
     except ValueError:
-        return redirect("/flights")
+        return redirect(ROUTE_FLIGHTS)
 
-    next_page = safe_redirect_path(request.form.get("next", "/flights"), default="/flights")
+    next_page = safe_redirect_path(request.form.get("next", ROUTE_FLIGHTS), default=ROUTE_FLIGHTS)
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -1351,11 +1393,11 @@ def delete_flight(id):
     conn.commit()
     conn.close()
 
-    return redirect("/flights")
+    return redirect(ROUTE_FLIGHTS)
 
 @app.route("/refresh-flights")
 def refresh_flights():
-    return redirect("/flights")
+    return redirect(ROUTE_FLIGHTS)
 
 @app.route("/passengers")
 def passengers():
@@ -1429,10 +1471,10 @@ def add_passenger():
         flight_id = safe_id(request.form["flight"], field_name="flight")
         seat = safe_text(request.form["seat"].upper(), field_name="seat", allow_empty=True, max_length=3, pattern=SEAT_PATTERN)
     except ValueError:
-        return redirect("/passengers")
+        return redirect(ROUTE_PASSENGERS)
     
     if seat == "":
-        return redirect(f"/passengers?flight={flight_id}&error=seat_required")
+        return redirect(build_path_with_query(ROUTE_PASSENGERS, {"flight": flight_id, "error": "seat_required"}))
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -1444,7 +1486,7 @@ def add_passenger():
 
     if cursor.fetchone():
         conn.close()
-        return redirect(f"/passengers?flight={flight_id}&error=wrong_passport")
+        return redirect(build_path_with_query(ROUTE_PASSENGERS, {"flight": flight_id, "error": "wrong_passport"}))
 
     # limit passengers per flight
     cursor.execute(
@@ -1475,7 +1517,7 @@ def add_passenger():
     conn.commit()
     conn.close()
 
-    return redirect(f"/passengers?flight={flight_id}")
+    return redirect(build_path_with_query(ROUTE_PASSENGERS, {"flight": flight_id}))
 
 @app.route("/delete-passenger/<int:id>", methods=["POST"])
 def delete_passenger(id):
@@ -1497,9 +1539,9 @@ def delete_passenger(id):
         selected_flight_id = None
 
     if selected_flight_id:
-        return redirect(f"/passengers?flight={selected_flight_id}")
+        return redirect(build_path_with_query(ROUTE_PASSENGERS, {"flight": selected_flight_id}))
 
-    return redirect("/passengers")
+    return redirect(ROUTE_PASSENGERS)
 
 @app.route("/baggage")
 def baggage():
@@ -1586,15 +1628,15 @@ def add_baggage():
         flight_id = safe_id(request.form.get("flight_id", ""), field_name="flight")
         status = safe_choice(request.form.get("status", ""), BAGGAGE_STATUS_CHOICES, field_name="status")
     except ValueError:
-        return redirect("/baggage?error=missing_fields")
+        return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "missing_fields"}))
 
     try:
         weight = float(request.form.get("weight", "").strip())
     except (ValueError, TypeError, AttributeError):
-        return redirect("/baggage?error=invalid_weight")
+        return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "invalid_weight"}))
 
     if weight <= 0 or weight > 43:
-        return redirect("/baggage?error=invalid_weight")
+        return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "invalid_weight"}))
 
     extra_weight = max(0, weight - 23)
 
@@ -1604,19 +1646,19 @@ def add_baggage():
     try:
         cursor.execute("SELECT id FROM baggage WHERE tag=?", (tag,))
         if cursor.fetchone():
-            return redirect("/baggage?error=tag_exists")
+            return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "tag_exists"}))
 
         cursor.execute(
             "SELECT * FROM baggage WHERE passenger_id = ? AND flight_id = ?",
             (passenger_id, flight_id)
         )
         if cursor.fetchone():
-            return redirect("/baggage?error=baggage_duplicate")
+            return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "baggage_duplicate"}))
 
         cursor.execute("SELECT departure, destination FROM flights WHERE id = ?", (flight_id,))
         flight_row = cursor.fetchone()
         if not flight_row:
-            return redirect("/baggage?error=flight_not_found")
+            return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "flight_not_found"}))
 
         price = extra_weight * 25
         location = flight_row[1] if status == "Arrived" else flight_row[0]
@@ -1632,7 +1674,7 @@ def add_baggage():
     finally:
         conn.close()
 
-    return redirect("/baggage")
+    return redirect(ROUTE_BAGGAGE)
 
 @app.route("/delete-baggage/<int:id>", methods=["POST"])
 def delete_baggage(id):
@@ -1654,15 +1696,15 @@ def delete_baggage(id):
     )
 
     if params:
-        return redirect("/baggage?" + urlencode(params))
+        return redirect(build_path_with_query(ROUTE_BAGGAGE, params))
 
-    return redirect("/baggage")
+    return redirect(ROUTE_BAGGAGE)
 
 
 @app.route("/upload", methods=["GET","POST"])
 def upload():
     if not current_user_is_admin():
-        return redirect("/dashboard")
+        return redirect(ROUTE_DASHBOARD)
 
     if request.method == "POST":
         # SECURITY FIX: fetch files safely and validate presence before saving.
@@ -1873,7 +1915,7 @@ def update_delay():
         flight_id = safe_id(request.form["id"], field_name="flight")
         new_time = safe_datetime_local(request.form["new_time"], field_name="time")
     except ValueError:
-        return redirect("/delays")
+        return redirect(ROUTE_DELAYS)
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -1887,7 +1929,7 @@ def update_delay():
     conn.commit()
     conn.close()
 
-    return redirect("/delays")
+    return redirect(ROUTE_DELAYS)
 
 @app.route("/schedule")
 def schedule():
@@ -1922,7 +1964,7 @@ def flight_status():
 @app.route("/logs")
 def logs():
     if not current_user_is_admin():
-        return redirect("/dashboard")
+        return redirect(ROUTE_DASHBOARD)
 
     try:
         with open("system.log","r") as f:
@@ -1935,7 +1977,7 @@ def logs():
 @app.route("/security")
 def security():
     if not current_user_is_admin():
-        return redirect("/dashboard")
+        return redirect(ROUTE_DASHBOARD)
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -1952,7 +1994,7 @@ def security():
 @app.route("/users")
 def users():
     if not current_user_is_admin():
-        return redirect("/dashboard")
+        return redirect(ROUTE_DASHBOARD)
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -1974,14 +2016,14 @@ def users():
 @app.route("/add-user", methods=["POST"])
 def add_user():
     if not current_user_is_admin():
-        return redirect("/dashboard")
+        return redirect(ROUTE_DASHBOARD)
 
     try:
         # SECURITY FIX: validate admin-created user data before insertion.
         username = safe_username(request.form["username"])
         role = safe_choice(request.form.get("role", "staff"), ROLE_CHOICES, default="staff", field_name="role")
     except ValueError:
-        return redirect("/users")
+        return redirect(ROUTE_USERS)
 
     password = request.form["password"]
     pfp_file = request.files.get("pfp")
@@ -1996,13 +2038,13 @@ def add_user():
     conn.commit()
     conn.close()
 
-    return redirect("/users")
+    return redirect(ROUTE_USERS)
 
 
 @app.route("/update-user-pfp/<int:id>", methods=["POST"])
 def update_user_pfp(id):
     if not current_user_is_admin():
-        return redirect("/dashboard")
+        return redirect(ROUTE_DASHBOARD)
 
     pfp_file = request.files.get("pfp")
 
@@ -2013,7 +2055,7 @@ def update_user_pfp(id):
 
     if not user:
         conn.close()
-        return redirect("/users")
+        return redirect(ROUTE_USERS)
 
     pfp_filename = save_user_profile_image(pfp_file, user[0])
 
@@ -2028,13 +2070,13 @@ def update_user_pfp(id):
 
     conn.close()
 
-    return redirect("/users")
+    return redirect(ROUTE_USERS)
 
 
 @app.route("/change-user-password/<int:id>", methods=["POST"])
 def change_user_password(id):
     if not current_user_is_admin():
-        return redirect("/dashboard")
+        return redirect(ROUTE_DASHBOARD)
 
     new_password = request.form.get("new_password", "").strip()
 
@@ -2063,7 +2105,7 @@ def change_user_password(id):
 @app.route("/delete-user/<int:id>", methods=["POST"])
 def delete_user(id):
     if not current_user_is_admin():
-        return redirect("/dashboard")
+        return redirect(ROUTE_DASHBOARD)
 
     conn = db()
     cursor = conn.cursor()
@@ -2079,12 +2121,12 @@ def delete_user(id):
         if os.path.exists(old_path):
             os.remove(old_path)
 
-    return redirect("/users")
+    return redirect(ROUTE_USERS)
 
 @app.route("/monitoring")
 def monitoring():
     if not current_user_is_admin():
-        return redirect("/dashboard")
+        return redirect(ROUTE_DASHBOARD)
 
     cpu = psutil.cpu_percent()
     memory = psutil.virtual_memory().percent
