@@ -15,6 +15,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 integrity="sha384-/o6I2CkkWC//PSjvWC/eYN7l3xM3tJm8ZzVkCOfp//W05QcE3mlGskpoHB6XqI+B"
 crossorigin="anonymous">
 
+<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}">
+
 <style>
 
 :root{
@@ -547,8 +549,8 @@ color:#9ca3af;
 opacity:1;
 }
 
-body.dark-mode .form-control[readonly],
-body.dark-mode input[readonly] {
+body.dark-mode .form-control:readonly,
+body.dark-mode input:readonly{
 background:#6b7280;
 color:#e5e7eb;
 }
@@ -711,11 +713,11 @@ border-left:none;
 <nav class="page-header">
 <div class="container page-wrap">
 
-<a href="/dashboard">
-<img src="/static/tunisair.png" class="logo">
+<a href="{{ ROUTES.dashboard }}">
+<img src="{{ ASSETS.logo }}" class="logo site-logo">
 </a>
 
-<a href="/dashboard" class="header-nav-link">Dashboard</a>
+<a href="{{ ROUTES.dashboard }}" class="header-nav-link">Dashboard</a>
 <a class="header-nav-link active">Baggage Tracking</a>
 
 {% if admin_profile %}
@@ -729,7 +731,7 @@ border-left:none;
 
 {% if admin_profile[2] %}
 <a href="/edit-profile" class="profile-access-link">
-<img src="/static/uploads/users/{{ admin_profile[2] }}" alt="Admin profile" class="header-avatar">
+<img src="{{ ASSETS.user_uploads }}/{{ admin_profile[2] }}" alt="Admin profile" class="header-avatar">
 </a>
 {% else %}
 <a href="/edit-profile" class="profile-access-link">
@@ -746,7 +748,7 @@ border-left:none;
 <i class="fa-solid fa-moon"></i>
 Dark Mode
 </button>
-<form method="POST" action="/logout" style="display:block; margin:0;">
+<form method="POST" action="{{ ROUTES.logout }}" class="menu-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <button type="submit" class="header-menu-item logout-link">
 <i class="fa-solid fa-right-from-bracket"></i>
@@ -765,8 +767,8 @@ Log Off
 <div class="page-wrap">
 
 <div class="topbar">
-<div style="min-width:0; flex:1 1 320px;">
-<div class="page-kicker">Operations / <strong style="color:#d90429;">Baggage Tracking</strong></div>
+<div class="hero-copy">
+<div class="page-kicker">Operations / <strong class="danger-accent">Baggage Tracking</strong></div>
 <h1>Baggage Tracking</h1>
 <p>Register baggage, calculate extra-weight pricing, and monitor baggage flow by flight and date from one operations view.</p>
 </div>
@@ -902,7 +904,7 @@ Log Off
 <div class="panel-badge">{{ baggage|length }} listed</div>
 </div>
 
-<div class="panel-body" style="padding-top:12px;">
+<div class="panel-body compact-panel-body">
 {% if filter_error %}
 <div class="alert alert-danger mb-3">
 {{ filter_error }}
@@ -982,7 +984,7 @@ Log Off
 <td><span class="status-pill">{{ b[7] }}</span></td>
 <td><span class="location-pill">{{ b[8] }}</span></td>
 <td>
-<form method="POST" action="/delete-baggage/{{b[0]}}" style="display:inline-flex; margin:0;">
+<form method="POST" action="/delete-baggage/{{b[0]}}" class="inline-action-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {% if selected_flight %}<input type="hidden" name="flight" value="{{ selected_flight }}">{% endif %}
 {% if selected_date %}<input type="hidden" name="date" value="{{ selected_date }}">{% endif %}
