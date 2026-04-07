@@ -301,15 +301,15 @@ padding-right:18px;
 
 <div class="profile-shell">
 <div class="profile-topbar">
-<div style="min-width:0; flex:1 1 320px;">
-<div class="profile-kicker">Profile / <strong style="color:#d90429;">Edit Profile</strong></div>
+<div class="hero-copy">
+<div class="profile-kicker">Profile / <strong class="danger-accent">Edit Profile</strong></div>
 <h1>Edit Profile</h1>
 <p>Update your personal details, staff information, and account security from one airline operations profile page.</p>
 </div>
 
 <div class="profile-chip-avatar">
 {% if user.pfp %}
-<img id="profileImg" src="/static/uploads/users/{{ user.pfp }}?t={{ user.id }}" alt="{{ user.name }}">
+<img id="profileImg" src="{{ ASSETS.user_uploads }}/{{ user.pfp }}?t={{ user.id }}" alt="{{ user.name }}">
 {% else %}
 <i class="fa-solid fa-user-gear"></i>
 {% endif %}
