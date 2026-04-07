@@ -19,7 +19,7 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_SECURE"] = False
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 csrf = CSRFProtect(app)
 ROUTE_LOGIN = "/login"
@@ -825,7 +825,6 @@ def add_security_headers(response):
         "img-src 'self' data: https://images.unsplash.com https://flagcdn.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://unpkg.com; "
         "connect-src 'self' https://tile.openstreetmap.org https://*.tile.openstreetmap.org; "
     )
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Permissions-Policy"] = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()"
     response.headers["Cross-Origin-Embedder-Policy"] = "credentialless"
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
@@ -2202,6 +2201,6 @@ if __name__ == "__main__":
     port = int(os.environ.get("FLASK_RUN_PORT", 5000))
     debug = env == "development"
 
-    app.config["SESSION_COOKIE_SECURE"] = not debug
+    app.config["SESSION_COOKIE_SECURE"] = False
 
     app.run(host=host, port=port, debug=debug)
