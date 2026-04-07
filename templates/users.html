@@ -398,8 +398,8 @@ max-width:100%;
 
 <div class="users-shell">
 <div class="users-topbar">
-<div style="min-width:0; flex:1 1 320px;">
-<div class="users-kicker">Support / <strong style="color:#d90429;">User Management</strong></div>
+<div class="hero-copy">
+<div class="users-kicker">Support / <strong class="danger-accent">User Management</strong></div>
 <h1>User Management</h1>
 <p>Create user accounts, assign roles, and manage profile pictures from a single administrative workspace.</p>
 </div>
@@ -488,7 +488,7 @@ max-width:100%;
 <div class="users-badge">{{ users|length }} active</div>
 </div>
 
-<div class="users-panel-body" style="padding-top:12px;">
+<div class="users-panel-body compact-panel-body">
 {% if password_message %}
 <div class="alert {% if password_status == 'success' %}alert-success{% else %}alert-danger{% endif %} mb-3" role="alert">
 {{ password_message }}
@@ -513,7 +513,7 @@ max-width:100%;
 <td>{{ u[0] }}</td>
 <td>
 {% if u[3] %}
-<img src="/static/uploads/users/{{u[3]}}" alt="{{u[1]}}" class="user-avatar">
+<img src="{{ ASSETS.user_uploads }}/{{u[3]}}" alt="{{u[1]}}" class="user-avatar">
 {% else %}
 <div class="user-avatar-fallback">
 <i class="fa fa-user"></i>
@@ -535,7 +535,7 @@ max-width:100%;
 <input type="password" name="new_password" class="form-control form-control-sm" placeholder="New password" required>
 <button class="btn btn-outline-warning btn-sm" type="submit">Change Password</button>
 </form>
-<form method="POST" action="/delete-user/{{u[0]}}" style="display:inline-flex; align-items:center; gap:0; margin:0; min-width:auto; flex:0 0 auto; flex-wrap:nowrap;">
+<form method="POST" action="/delete-user/{{u[0]}}" class="inline-action-form-fixed" style="align-items:center; gap:0; min-width:auto; flex-wrap:nowrap;">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <button type="submit" class="btn btn-danger btn-sm user-delete">
 <i class="fa fa-trash"></i>
