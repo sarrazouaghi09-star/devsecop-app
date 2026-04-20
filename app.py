@@ -1,16 +1,18 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, has_request_context
 from flask_wtf import CSRFProtect
 import sqlite3
 import os
 import re
 import json
 import secrets
+import logging
 from uuid import uuid4
 from urllib.parse import urlencode
 import psutil
 import calendar
 from datetime import date
 from datetime import datetime, timedelta, timezone
+from logging.handlers import RotatingFileHandler
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -20,7 +22,7 @@ app = Flask(__name__)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = False
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
+app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 csrf = CSRFProtect(app)
 ROUTE_LOGIN = "/login"
 ROUTE_LOGOUT = "/logout"
@@ -54,6 +56,9 @@ UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 # SECURITY FIX: limit total request upload size to reduce abuse and oversized file attacks.
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
+APP_LOG_FILE = os.environ.get("APP_LOG_FILE", "system.log")
+APP_LOG_MAX_BYTES = int(os.environ.get("APP_LOG_MAX_BYTES", 5 * 1024 * 1024))
+APP_LOG_BACKUP_COUNT = int(os.environ.get("APP_LOG_BACKUP_COUNT", 3))
 USER_PFP_FOLDER = os.path.join("static", "uploads", "users")
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 # SECURITY FIX: only allow expected upload extensions for user-provided files.
@@ -96,6 +101,7 @@ SEARCH_RESULTS_DEFAULT_FILTER_TYPE = "day"
 SEARCH_FIELD_MAX_LENGTH = 60
 PASSWORD_STATUS_MAX_LENGTH = 20
 PASSWORD_MESSAGE_MAX_LENGTH = 120
+SENSITIVE_LOG_KEYS = {"password", "new_password", "confirm_password", "csrf_token"}
 JS_CLOSEST_FORM_SUBMIT_PATTERN = re.compile(r"this\.closest\((['\"])form\1\)\.submit\(\)")
 JS_FUNCTION_CALL_PATTERN = re.compile(r"([A-Za-z_$][\w$]*)\((.*)\)")
 JS_NUMERIC_LITERAL_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
@@ -115,6 +121,99 @@ FROM flights
 WHERE departure LIKE ? ESCAPE '\\'
 AND destination LIKE ? ESCAPE '\\'
 """
+
+
+def configure_security_logger():
+    log_dir = os.path.dirname(APP_LOG_FILE)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+
+    logger = logging.getLogger("airline_security")
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+
+    if logger.handlers:
+        return logger
+
+    formatter = logging.Formatter("%(message)s")
+
+    file_handler = RotatingFileHandler(
+        APP_LOG_FILE,
+        maxBytes=APP_LOG_MAX_BYTES,
+        backupCount=APP_LOG_BACKUP_COUNT,
+        encoding="utf-8"
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+    return logger
+
+
+security_logger = configure_security_logger()
+
+
+def get_request_context_fields():
+    if not has_request_context():
+        return {}
+
+    forwarded_for = request.headers.get("X-Forwarded-For", "")
+    source_ip = forwarded_for.split(",", 1)[0].strip() or request.remote_addr or "unknown"
+
+    return {
+        "source_ip": source_ip,
+        "method": request.method,
+        "path": request.path,
+        "user_agent": request.headers.get("User-Agent", ""),
+        "user_id": session.get("user_id"),
+    }
+
+
+def sanitize_log_value(value):
+    if value is None:
+        return None
+    if isinstance(value, (int, float, bool)):
+        return value
+    return str(value).replace("\r", "\\r").replace("\n", "\\n")[:500]
+
+
+def sanitize_log_fields(fields):
+    return {
+        key: sanitize_log_value(value)
+        for key, value in fields.items()
+        if value is not None
+    }
+
+
+def emit_security_event(event_type, outcome="info", severity="info", **fields):
+    event = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "app": "airline-vulnerable-app",
+        "event_type": event_type,
+        "outcome": outcome,
+        "severity": severity,
+    }
+    event.update(get_request_context_fields())
+    event.update(sanitize_log_fields(fields))
+    security_logger.info(json.dumps(event, separators=(",", ":"), ensure_ascii=False))
+
+
+def log_suspicious_fields(source_name, values):
+    for key, value in values.items():
+        if key in SENSITIVE_LOG_KEYS:
+            continue
+        if has_malicious_pattern(value):
+            emit_security_event(
+                "suspicious_input",
+                outcome="blocked",
+                severity="warning",
+                source=source_name,
+                field=key,
+                value=value,
+            )
 
 
 # SECURITY FIX: central validation helpers keep SQL inputs constrained before any query runs.
@@ -175,7 +274,7 @@ def safe_id(value, field_name="id", allow_empty=False):
 
 # SECURITY FIX: LIKE filters escape wildcard characters so users cannot widen matches with % or _.
 def escape_like_value(value):
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("", "\\")
 
 
 def safe_like_text(value, field_name="field", max_length=100):
@@ -279,21 +378,48 @@ def build_unique_filename(original_filename, prefix="upload"):
 # SECURITY FIX: centralize upload validation and saving so every file path gets the same protections.
 def save_uploaded_file(file_storage, target_dir, allowed_extensions, allowed_mime_types, prefix="upload"):
     if not file_storage:
+        emit_security_event("file_upload_rejected", outcome="blocked", severity="warning", reason="missing_file", upload_type=prefix)
         return "", "No file uploaded."
 
     original_filename = (file_storage.filename or "").strip()
     if not original_filename:
+        emit_security_event("file_upload_rejected", outcome="blocked", severity="warning", reason="empty_filename", upload_type=prefix)
         return "", "No file selected."
 
     if not allowed_file_extension(original_filename, allowed_extensions):
+        emit_security_event(
+            "file_upload_rejected",
+            outcome="blocked",
+            severity="warning",
+            reason="invalid_extension",
+            upload_type=prefix,
+            filename=original_filename,
+        )
         return "", "Invalid file type. Only images and PDF files are allowed."
 
     if allowed_mime_types and not allowed_mime_type(file_storage, allowed_mime_types):
+        emit_security_event(
+            "file_upload_rejected",
+            outcome="blocked",
+            severity="warning",
+            reason="invalid_mime_type",
+            upload_type=prefix,
+            filename=original_filename,
+            mime_type=file_storage.mimetype,
+        )
         return "", "Invalid file type. Only images and PDF files are allowed."
 
     os.makedirs(target_dir, exist_ok=True)
     filename = build_unique_filename(original_filename, prefix=prefix)
     file_storage.save(os.path.join(target_dir, filename))
+    emit_security_event(
+        "file_upload_saved",
+        outcome="success",
+        severity="info",
+        upload_type=prefix,
+        filename=filename,
+        mime_type=file_storage.mimetype,
+    )
     return filename, ""
 
 
@@ -647,8 +773,27 @@ def get_current_user_profile():
         "password": row[9] or ""
     }
 
+
+@app.before_request
+def log_suspicious_request_inputs():
+    if request.path.startswith("/static/"):
+        return
+
+    log_suspicious_fields("query", request.args)
+    if request.method in {"POST", "PUT", "PATCH"}:
+        log_suspicious_fields("form", request.form)
+
+
 @app.after_request
 def add_security_headers(response):
+    if not request.path.startswith("/static/") and response.status_code >= 400:
+        emit_security_event(
+            "http_error",
+            outcome="error",
+            severity="warning" if response.status_code < 500 else "error",
+            status_code=response.status_code,
+        )
+
     csp_nonce = secrets.token_urlsafe(16)
 
     if response.mimetype == "text/html":
@@ -867,6 +1012,7 @@ ensure_user_profile_schema()
 @app.errorhandler(RequestEntityTooLarge)
 def handle_file_too_large(error):
     # SECURITY FIX: return a safe message instead of leaking framework internals on oversized uploads.
+    emit_security_event("file_upload_rejected", outcome="blocked", severity="warning", reason="too_large")
     return "File too large. Maximum allowed size is 8 MB.", 413
 
 
@@ -887,6 +1033,13 @@ def login():
             # SECURITY FIX: validate username before it reaches authentication queries.
             username = safe_username(username)
         except ValueError as error:
+            emit_security_event(
+                "login_failed",
+                outcome="blocked",
+                severity="warning",
+                username=request.form.get("username", ""),
+                reason="invalid_username",
+            )
             return render_template("login.html", login_error=str(error))
 
         conn = db()
@@ -905,10 +1058,24 @@ def login():
                 )
                 conn.commit()
             session["user_id"] = user[0]
+            emit_security_event(
+                "login_success",
+                outcome="success",
+                severity="info",
+                username=username,
+                role=user[3] if len(user) > 3 else "",
+            )
             conn.close()
             return redirect(ROUTE_DASHBOARD)
 
         conn.close()
+        emit_security_event(
+            "login_failed",
+            outcome="failure",
+            severity="warning",
+            username=username,
+            reason="bad_credentials",
+        )
         return render_template("login.html", login_error="Wrong username or password")
 
     return render_template("login.html")
@@ -916,6 +1083,7 @@ def login():
 
 @app.route("/logout", methods=["POST"])
 def logout():
+    emit_security_event("logout", outcome="success", severity="info")
     session.clear()
     return redirect(ROUTE_LOGIN)
 
@@ -1330,7 +1498,8 @@ def add_flight():
         destination = safe_text(request.form["destination"], field_name="destination", allow_empty=False, max_length=60)
         gate = safe_text(request.form["gate"].upper(), field_name="gate", allow_empty=False, max_length=3, pattern=GATE_PATTERN)
         time = safe_datetime_local(request.form["time"], field_name="time")
-    except ValueError:
+    except ValueError as error:
+        emit_security_event("flight_create_failed", outcome="blocked", severity="warning", reason=str(error))
         return redirect(ROUTE_FLIGHTS)
 
     status = "On Time"
@@ -1345,6 +1514,7 @@ def add_flight():
 
     if cursor.fetchone():
         conn.close()
+        emit_security_event("flight_create_failed", outcome="failure", severity="warning", flight_number=flight, reason="duplicate_flight")
         return redirect(build_path_with_query(ROUTE_FLIGHTS, {"error": "flight_exists"}))
 
     cursor.execute("""
@@ -1355,6 +1525,7 @@ def add_flight():
 
     conn.commit()
     conn.close()
+    emit_security_event("flight_created", outcome="success", severity="info", flight_number=flight, departure=departure, destination=destination)
 
     return redirect(ROUTE_FLIGHTS)
 
@@ -1365,7 +1536,8 @@ def update_flight_status(id):
     try:
         # SECURITY FIX: whitelist status values and sanitize redirect targets.
         status = safe_choice(request.form["status"], FLIGHT_STATUS_CHOICES, field_name="status")
-    except ValueError:
+    except ValueError as error:
+        emit_security_event("flight_status_update_failed", outcome="blocked", severity="warning", flight_id=id, reason=str(error))
         return redirect(ROUTE_FLIGHTS)
 
     next_page = safe_redirect_path(request.form.get("next", ROUTE_FLIGHTS), default=ROUTE_FLIGHTS)
@@ -1378,6 +1550,7 @@ def update_flight_status(id):
     )
     conn.commit()
     conn.close()
+    emit_security_event("flight_status_updated", outcome="success", severity="info", flight_id=id, status=status)
 
     return redirect(next_page)
 
@@ -1391,6 +1564,7 @@ def delete_flight(id):
 
     conn.commit()
     conn.close()
+    emit_security_event("flight_deleted", outcome="success", severity="warning", flight_id=id)
 
     return redirect(ROUTE_FLIGHTS)
 
@@ -1469,10 +1643,12 @@ def add_passenger():
         passport = safe_text(request.form["passport"], field_name="passport", allow_empty=False, max_length=8, pattern=PASSPORT_PATTERN)
         flight_id = safe_id(request.form["flight"], field_name="flight")
         seat = safe_text(request.form["seat"].upper(), field_name="seat", allow_empty=True, max_length=3, pattern=SEAT_PATTERN)
-    except ValueError:
+    except ValueError as error:
+        emit_security_event("passenger_create_failed", outcome="blocked", severity="warning", reason=str(error))
         return redirect(ROUTE_PASSENGERS)
     
     if seat == "":
+        emit_security_event("passenger_create_failed", outcome="failure", severity="warning", flight_id=flight_id, reason="seat_required")
         return redirect(build_path_with_query(ROUTE_PASSENGERS, {"flight": flight_id, "error": "seat_required"}))
 
     conn = sqlite3.connect("database.db")
@@ -1485,6 +1661,7 @@ def add_passenger():
 
     if cursor.fetchone():
         conn.close()
+        emit_security_event("passenger_create_failed", outcome="failure", severity="warning", passport=passport, reason="duplicate_passport")
         return redirect(build_path_with_query(ROUTE_PASSENGERS, {"flight": flight_id, "error": "wrong_passport"}))
 
     # limit passengers per flight
@@ -1496,6 +1673,7 @@ def add_passenger():
 
     if count >= 100:
         conn.close()
+        emit_security_event("passenger_create_failed", outcome="failure", severity="warning", flight_id=flight_id, reason="flight_full")
         return "Flight full (max 100 passengers)"
 
     # prevent duplicate seat
@@ -1506,6 +1684,7 @@ def add_passenger():
 
     if cursor.fetchone():
         conn.close()
+        emit_security_event("passenger_create_failed", outcome="failure", severity="warning", flight_id=flight_id, seat=seat, reason="duplicate_seat")
         return "Seat already taken"
 
     cursor.execute("""
@@ -1515,6 +1694,7 @@ def add_passenger():
 
     conn.commit()
     conn.close()
+    emit_security_event("passenger_created", outcome="success", severity="info", flight_id=flight_id, passport=passport, seat=seat)
 
     return redirect(build_path_with_query(ROUTE_PASSENGERS, {"flight": flight_id}))
 
@@ -1531,6 +1711,7 @@ def delete_passenger(id):
 
     conn.commit()
     conn.close()
+    emit_security_event("passenger_deleted", outcome="success", severity="warning", passenger_id=id)
 
     try:
         selected_flight_id = safe_id(request.form.get("flight", ""), field_name="flight", allow_empty=True)
@@ -1626,15 +1807,18 @@ def add_baggage():
         passenger_id = safe_id(request.form.get("passenger_id", ""), field_name="passenger")
         flight_id = safe_id(request.form.get("flight_id", ""), field_name="flight")
         status = safe_choice(request.form.get("status", ""), BAGGAGE_STATUS_CHOICES, field_name="status")
-    except ValueError:
+    except ValueError as error:
+        emit_security_event("baggage_create_failed", outcome="blocked", severity="warning", reason=str(error))
         return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "missing_fields"}))
 
     try:
         weight = float(request.form.get("weight", "").strip())
     except (ValueError, TypeError, AttributeError):
+        emit_security_event("baggage_create_failed", outcome="blocked", severity="warning", reason="invalid_weight")
         return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "invalid_weight"}))
 
     if weight <= 0 or weight > 43:
+        emit_security_event("baggage_create_failed", outcome="blocked", severity="warning", reason="invalid_weight_range", weight=weight)
         return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "invalid_weight"}))
 
     extra_weight = max(0, weight - 23)
@@ -1645,6 +1829,7 @@ def add_baggage():
     try:
         cursor.execute("SELECT id FROM baggage WHERE tag=?", (tag,))
         if cursor.fetchone():
+            emit_security_event("baggage_create_failed", outcome="failure", severity="warning", tag=tag, reason="duplicate_tag")
             return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "tag_exists"}))
 
         cursor.execute(
@@ -1652,11 +1837,13 @@ def add_baggage():
             (passenger_id, flight_id)
         )
         if cursor.fetchone():
+            emit_security_event("baggage_create_failed", outcome="failure", severity="warning", passenger_id=passenger_id, flight_id=flight_id, reason="duplicate_baggage")
             return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "baggage_duplicate"}))
 
         cursor.execute("SELECT departure, destination FROM flights WHERE id = ?", (flight_id,))
         flight_row = cursor.fetchone()
         if not flight_row:
+            emit_security_event("baggage_create_failed", outcome="failure", severity="warning", flight_id=flight_id, reason="flight_not_found")
             return redirect(build_path_with_query(ROUTE_BAGGAGE, {"error": "flight_not_found"}))
 
         price = extra_weight * 25
@@ -1670,6 +1857,7 @@ def add_baggage():
         (tag, passenger_id, flight_id, weight, extra_weight, price, status, location))
 
         conn.commit()
+        emit_security_event("baggage_created", outcome="success", severity="info", tag=tag, passenger_id=passenger_id, flight_id=flight_id, weight=weight, status=status)
     finally:
         conn.close()
 
@@ -1685,6 +1873,7 @@ def delete_baggage(id):
 
     conn.commit()
     conn.close()
+    emit_security_event("baggage_deleted", outcome="success", severity="warning", baggage_id=id)
 
     filters = parse_baggage_filters(request.form, default_filter_type="")
     params = build_baggage_redirect_params(
@@ -1703,6 +1892,7 @@ def delete_baggage(id):
 @app.route("/upload", methods=["GET","POST"])
 def upload():
     if not current_user_is_admin():
+        emit_security_event("unauthorized_admin_route", outcome="blocked", severity="warning", target_route="/upload")
         return redirect(ROUTE_DASHBOARD)
 
     if request.method == "POST":
@@ -1734,6 +1924,7 @@ def upload():
                     os.remove(passport_path)
             return cin_error
 
+        emit_security_event("documents_uploaded", outcome="success", severity="info", passport_file=passport_filename, cin_file=cin_filename)
         return "File uploaded"
 
     return render_template("upload.html")
@@ -1963,12 +2154,13 @@ def flight_status():
 @app.route("/logs")
 def logs():
     if not current_user_is_admin():
+        emit_security_event("unauthorized_admin_route", outcome="blocked", severity="warning", target_route="/logs")
         return redirect(ROUTE_DASHBOARD)
 
     try:
-        with open("system.log","r") as f:
+        with open(APP_LOG_FILE, "r", encoding="utf-8") as f:
             logs = f.readlines()
-    except:
+    except OSError:
         logs = ["No logs available"]
 
     return render_template("logs.html", logs=logs)
@@ -1976,6 +2168,7 @@ def logs():
 @app.route("/security")
 def security():
     if not current_user_is_admin():
+        emit_security_event("unauthorized_admin_route", outcome="blocked", severity="warning", target_route="/security")
         return redirect(ROUTE_DASHBOARD)
 
     conn = sqlite3.connect("database.db")
@@ -1993,6 +2186,7 @@ def security():
 @app.route("/users")
 def users():
     if not current_user_is_admin():
+        emit_security_event("unauthorized_admin_route", outcome="blocked", severity="warning", target_route=ROUTE_USERS)
         return redirect(ROUTE_DASHBOARD)
 
     conn = sqlite3.connect("database.db")
@@ -2015,13 +2209,15 @@ def users():
 @app.route("/add-user", methods=["POST"])
 def add_user():
     if not current_user_is_admin():
+        emit_security_event("unauthorized_admin_action", outcome="blocked", severity="warning", action="add_user")
         return redirect(ROUTE_DASHBOARD)
 
     try:
         # SECURITY FIX: validate admin-created user data before insertion.
         username = safe_username(request.form["username"])
         role = safe_choice(request.form.get("role", "staff"), ROLE_CHOICES, default="staff", field_name="role")
-    except ValueError:
+    except ValueError as error:
+        emit_security_event("user_create_failed", outcome="blocked", severity="warning", reason=str(error))
         return redirect(ROUTE_USERS)
 
     password = request.form["password"]
@@ -2036,6 +2232,7 @@ def add_user():
     """, (username, generate_password_hash(password), role, "", "", "", "", "", pfp_filename))
     conn.commit()
     conn.close()
+    emit_security_event("user_created", outcome="success", severity="info", username=username, role=role)
 
     return redirect(ROUTE_USERS)
 
@@ -2043,6 +2240,7 @@ def add_user():
 @app.route("/update-user-pfp/<int:id>", methods=["POST"])
 def update_user_pfp(id):
     if not current_user_is_admin():
+        emit_security_event("unauthorized_admin_action", outcome="blocked", severity="warning", action="update_user_pfp", target_user_id=id)
         return redirect(ROUTE_DASHBOARD)
 
     pfp_file = request.files.get("pfp")
@@ -2054,6 +2252,7 @@ def update_user_pfp(id):
 
     if not user:
         conn.close()
+        emit_security_event("user_pfp_update_failed", outcome="failure", severity="warning", target_user_id=id, reason="user_not_found")
         return redirect(ROUTE_USERS)
 
     pfp_filename = save_user_profile_image(pfp_file, user[0])
@@ -2066,6 +2265,7 @@ def update_user_pfp(id):
 
         cursor.execute("UPDATE users SET pfp=? WHERE id=?", (pfp_filename, id))
         conn.commit()
+        emit_security_event("user_pfp_updated", outcome="success", severity="info", target_user_id=id, username=user[0])
 
     conn.close()
 
@@ -2075,11 +2275,13 @@ def update_user_pfp(id):
 @app.route("/change-user-password/<int:id>", methods=["POST"])
 def change_user_password(id):
     if not current_user_is_admin():
+        emit_security_event("unauthorized_admin_action", outcome="blocked", severity="warning", action="change_user_password", target_user_id=id)
         return redirect(ROUTE_DASHBOARD)
 
     new_password = request.form.get("new_password", "").strip()
 
     if not new_password:
+        emit_security_event("user_password_change_failed", outcome="blocked", severity="warning", target_user_id=id, reason="empty_password")
         return build_user_password_redirect("error", "Password cannot be empty")
 
     conn = db()
@@ -2088,6 +2290,7 @@ def change_user_password(id):
     try:
         cursor.execute("SELECT id FROM users WHERE id=?", (id,))
         if not cursor.fetchone():
+            emit_security_event("user_password_change_failed", outcome="failure", severity="warning", target_user_id=id, reason="user_not_found")
             return build_user_password_redirect("error", "User not found")
 
         cursor.execute(
@@ -2095,6 +2298,7 @@ def change_user_password(id):
             (generate_password_hash(new_password), id)
         )
         conn.commit()
+        emit_security_event("user_password_changed", outcome="success", severity="warning", target_user_id=id)
     finally:
         conn.close()
 
@@ -2104,6 +2308,7 @@ def change_user_password(id):
 @app.route("/delete-user/<int:id>", methods=["POST"])
 def delete_user(id):
     if not current_user_is_admin():
+        emit_security_event("unauthorized_admin_action", outcome="blocked", severity="warning", action="delete_user", target_user_id=id)
         return redirect(ROUTE_DASHBOARD)
 
     conn = db()
@@ -2114,6 +2319,7 @@ def delete_user(id):
     cursor.execute("DELETE FROM users WHERE id=?", (id,))
     conn.commit()
     conn.close()
+    emit_security_event("user_deleted", outcome="success", severity="warning", target_user_id=id)
 
     if user and user[0]:
         old_path = os.path.join(USER_PFP_FOLDER, user[0])
@@ -2125,6 +2331,7 @@ def delete_user(id):
 @app.route("/monitoring")
 def monitoring():
     if not current_user_is_admin():
+        emit_security_event("unauthorized_admin_route", outcome="blocked", severity="warning", target_route="/monitoring")
         return redirect(ROUTE_DASHBOARD)
 
     cpu = psutil.cpu_percent()
