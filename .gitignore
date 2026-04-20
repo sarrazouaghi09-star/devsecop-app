@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+
+# Local app state and secrets
+database.db
+*.db
+*.sqlite
+*.sqlite3
+system.log
+*.log
+logs/
+
+# Local uploads generated while testing
+uploads/
+static/uploads/users/
+
+# Local environment files
+.env
+.env.*
