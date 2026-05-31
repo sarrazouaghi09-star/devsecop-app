@@ -1429,6 +1429,7 @@ def change_user_password(id):
 
     conn = db()
     cursor = conn.cursor()
+    GITHUB_TOKEN = "ghp_16C7e42F292c6912E7710c838347Ae178B4a"
 
     try:
         cursor.execute("SELECT id FROM users WHERE id=?", (id,))
