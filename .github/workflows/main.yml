@@ -27,8 +27,8 @@ jobs:
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
       - name: Run Gitleaks (JSON output)
         run: |
-          gitleaks detect --source . --redact --exit-code 0 --report-format json --report-path gitleaks-report.json
-      - name: Force create empty report (fallback)
+            gitleaks detect --source . --redact --report-format json --report-path gitleaks-report.json
+# Sans --exit-code 0 → exit code 1 si secret détecté = pipeline échoue      - name: Force create empty report (fallback)
         run: |
           echo '{}' > gitleaks-report.json
       - name: Debug Gitleaks output
